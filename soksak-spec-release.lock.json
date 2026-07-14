@@ -1,0 +1,39 @@
+{
+  "spec": "soksak-spec-platform-release@0.0.1",
+  "kind": "spec",
+  "id": "soksak-spec",
+  "version": "0.0.1",
+  "source": {
+    "repository": "https://github.com/soksak-ai/soksak-spec",
+    "commit": "97af8080c4a9ad22121f6d43fd2ee563a6ff2ad1"
+  },
+  "releaseTag": "soksak-spec-v0.0.1",
+  "dependencies": [],
+  "packages": [
+    {
+      "ecosystem": "javascript",
+      "name": "@soksak-ai/plugin-spec",
+      "version": "0.0.1",
+      "artifact": {
+        "url": "https://github.com/soksak-ai/soksak-spec/releases/download/soksak-spec-v0.0.1/soksak-ai-plugin-spec-0.0.1.tgz",
+        "sha256": "25a97c965e8fd83d3f7778e4eea5152ddb79d91311c4d0df18786c1e343274e8",
+        "format": "tgz"
+      }
+    },
+    {
+      "ecosystem": "rust",
+      "name": "soksak-spec-contract",
+      "version": "0.0.1"
+    },
+    {
+      "ecosystem": "rust",
+      "name": "soksak-spec-service",
+      "version": "0.0.1"
+    },
+    {
+      "ecosystem": "rust",
+      "name": "soksak-spec-socket",
+      "version": "0.0.1"
+    }
+  ]
+}

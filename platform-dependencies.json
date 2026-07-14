@@ -1,0 +1,18 @@
+{
+  "schema": "soksak-platform-dependency-lock@0.0.1",
+  "dependencies": [
+    {
+      "kind": "spec",
+      "id": "soksak-spec",
+      "version": "0.0.1",
+      "source": {
+        "repository": "https://github.com/soksak-ai/soksak-spec",
+        "commit": "97af8080c4a9ad22121f6d43fd2ee563a6ff2ad1"
+      },
+      "manifest": {
+        "url": "https://github.com/soksak-ai/soksak-spec/releases/download/soksak-spec-v0.0.1/soksak-spec-release.json",
+        "sha256": "d37c5a8ae86780cb266bd00ef312d2ebd89b71877ad2fbb5000a8eac4accb8ab"
+      }
+    }
+  ]
+}
