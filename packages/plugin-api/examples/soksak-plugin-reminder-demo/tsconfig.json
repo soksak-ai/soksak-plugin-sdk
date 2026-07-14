@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "baseUrl": "../../../..",
+    "paths": {
+      "@soksak-ai/plugin-api": ["packages/plugin-api/dist/index.d.ts"],
+      "@soksak-ai/plugin-spec": [".dependencies/plugin-spec/dist/spec.d.ts"]
+    },
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,5 @@
+artifacts/
+.dependencies/
+node_modules/
+packages/*/dist/
+packages/plugin-api/examples/*/dist/

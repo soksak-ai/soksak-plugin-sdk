@@ -1,0 +1,59 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the exact source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.30.3
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install locked development tools
+        run: pnpm install --frozen-lockfile
+      - name: Prepare the exact public platform dependency
+        run: node scripts/prepare-spec.mjs
+      - name: Prove the complete release from the clean checkout
+        run: pnpm test
+      - name: Bind publication to main and the exact checkout
+        run: node scripts/release-context.mjs
+      - name: Mint a least-privilege installation token
+        id: release-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ vars.SOKSAK_RELEASE_CLIENT_ID }}
+          private-key: ${{ secrets.SOKSAK_RELEASE_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: soksak-plugin-sdk
+          permission-administration: read
+          permission-contents: write
+      - name: Publish the verified owner manifest and assets
+        env:
+          SOKSAK_RELEASE_TOKEN: ${{ steps.release-token.outputs.token }}
+        run: >-
+          node scripts/publish-release.mjs
+          --repository "$GITHUB_REPOSITORY"
+          --commit "$GITHUB_SHA"
+          --artifacts "$GITHUB_WORKSPACE/artifacts"
+          --manifest "$GITHUB_WORKSPACE/artifacts/soksak-plugin-sdk-release.json"

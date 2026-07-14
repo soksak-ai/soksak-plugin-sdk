@@ -1,0 +1,5 @@
+packages:
+  - "packages/plugin-api"
+autoInstallPeers: false
+nodeLinker: hoisted
+preferSymlinkedExecutables: false

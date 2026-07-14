@@ -1,0 +1,24 @@
+{
+  "name": "soksak-plugin-sdk-workspace",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "soksakRelease": {
+    "kind": "sdk",
+    "id": "soksak-plugin-sdk",
+    "repository": "https://github.com/soksak-ai/soksak-plugin-sdk",
+    "manifest": "soksak-plugin-sdk-release.json"
+  },
+  "scripts": {
+    "dependencies:prepare": "node scripts/prepare-spec.mjs",
+    "build": "pnpm --filter @soksak-ai/plugin-api build",
+    "test:unit": "pnpm build && node --test scripts/*.test.mjs && vitest run --config vitest.config.mjs",
+    "release:verify": "node scripts/release-verify.mjs",
+    "test": "pnpm test:unit && pnpm release:verify"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.3",
+    "typescript": "5.8.3",
+    "vitest": "4.1.8"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "spec": "soksak-spec-plugin@0.0.1",
+  "id": "soksak-plugin-reminder-demo",
+  "name": "Reminder Demo",
+  "version": "0.0.1",
+  "description": "Official SDK fixture that schedules a public plugin command through the Command Registry.",
+  "entry": "dist/main.js",
+  "permissions": ["commands"],
+  "contributes": {
+    "commands": [
+      {
+        "name": "fire",
+        "title": "Show reminder"
+      }
+    ]
+  }
+}
