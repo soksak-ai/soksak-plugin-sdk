@@ -90,9 +90,9 @@ test("repository owns a reproducible GitHub-only SDK boundary", () => {
     "https://github.com/soksak-ai/soksak-spec/releases/download/soksak-spec-v0.0.1/soksak-spec-release.json",
   );
   const specRelease = json("soksak-spec-release.lock.json");
-  assert.equal(specRelease.source.commit, "97af8080c4a9ad22121f6d43fd2ee563a6ff2ad1");
+  assert.equal(specRelease.source.commit, "de3586a18f3a439aad0c63eeab9d877681a4bab0");
   assert.deepEqual(specRelease.dependencies, []);
-  assert.equal(specRelease.packages[0].artifact.sha256, "25a97c965e8fd83d3f7778e4eea5152ddb79d91311c4d0df18786c1e343274e8");
+  assert.equal(specRelease.packages[0].artifact.sha256, "c7c9c27488b24aeb87df8d64311e3f4f70b950a129ef78462e592c9f08824a81");
 
   for (const workflow of [".github/workflows/release.yml", ".github/workflows/verify.yml"]) {
     const uses = [...read(workflow).matchAll(/^\s*-?\s*uses:\s*([^\s#]+)/gm)].map((match) => match[1]);
