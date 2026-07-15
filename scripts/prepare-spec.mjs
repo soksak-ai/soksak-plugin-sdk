@@ -215,14 +215,34 @@ function regularFile(path, label) {
   return readFileSync(path);
 }
 
+function githubDownloadHost(hostname) {
+  return hostname === "github.com" ||
+    hostname === "githubusercontent.com" ||
+    hostname.endsWith(".githubusercontent.com");
+}
+
 async function fetchBytes(url, label) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(30_000), redirect: "error" });
-  if (!response.ok) throw new Error(`${label}: HTTP ${response.status}`);
-  const declared = Number(response.headers.get("content-length") ?? "0");
-  if (declared > MAX_DOWNLOAD_BYTES) throw new Error(`${label}: declared size exceeds limit`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.length > MAX_DOWNLOAD_BYTES) throw new Error(`${label}: size exceeds limit`);
-  return bytes;
+  let current = url;
+  for (let redirects = 0; redirects <= 5; redirects += 1) {
+    const response = await fetch(current, { signal: AbortSignal.timeout(30_000), redirect: "manual" });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) throw new Error(`${label}: redirect without a location`);
+      const next = new URL(location, current);
+      if (next.protocol !== "https:" || !githubDownloadHost(next.hostname)) {
+        throw new Error(`${label}: redirect to a disallowed target`);
+      }
+      current = next.toString();
+      continue;
+    }
+    if (!response.ok) throw new Error(`${label}: HTTP ${response.status}`);
+    const declared = Number(response.headers.get("content-length") ?? "0");
+    if (declared > MAX_DOWNLOAD_BYTES) throw new Error(`${label}: declared size exceeds limit`);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > MAX_DOWNLOAD_BYTES) throw new Error(`${label}: size exceeds limit`);
+    return bytes;
+  }
+  throw new Error(`${label}: too many redirects`);
 }
 
 function run(command, args, options = {}) {
