@@ -7,11 +7,11 @@
       "version": "0.0.1",
       "source": {
         "repository": "https://github.com/soksak-ai/soksak-spec",
-        "commit": "97af8080c4a9ad22121f6d43fd2ee563a6ff2ad1"
+        "commit": "de3586a18f3a439aad0c63eeab9d877681a4bab0"
       },
       "manifest": {
         "url": "https://github.com/soksak-ai/soksak-spec/releases/download/soksak-spec-v0.0.1/soksak-spec-release.json",
-        "sha256": "d37c5a8ae86780cb266bd00ef312d2ebd89b71877ad2fbb5000a8eac4accb8ab"
+        "sha256": "4b402f01f7cd24c89055a879e6eb0d98981c0451668ddc63e3f65a5daab53f65"
       }
     }
   ]
