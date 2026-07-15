@@ -15,9 +15,9 @@ const manifestBytes = readFileSync(join(root, "soksak-spec-release.lock.json"));
 
 test("locked spec resolves one exact manifest and JavaScript artifact", () => {
   const resolved = resolveLockedSpec(lock, manifestBytes);
-  assert.equal(resolved.commit, "97af8080c4a9ad22121f6d43fd2ee563a6ff2ad1");
+  assert.equal(resolved.commit, "de3586a18f3a439aad0c63eeab9d877681a4bab0");
   assert.equal(resolved.manifest.sha256, lock.dependencies[0].manifest.sha256);
-  assert.equal(resolved.artifact.sha256, "25a97c965e8fd83d3f7778e4eea5152ddb79d91311c4d0df18786c1e343274e8");
+  assert.equal(resolved.artifact.sha256, "c7c9c27488b24aeb87df8d64311e3f4f70b950a129ef78462e592c9f08824a81");
   assert.match(resolved.artifact.url, /\/soksak-ai-plugin-spec-0\.0\.1\.tgz$/);
 });
 
