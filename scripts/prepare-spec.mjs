@@ -48,13 +48,38 @@ function run(command, args, cwd) {
 }
 
 function assertRegularTree(at, prefix = "") {
-  for (const entry of readdirSync(at, { withFileTypes: true })) {
+  for (const entry of readdirSync(at, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
     const path = join(at, entry.name); const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
     const stat = lstatSync(path);
     if (stat.isSymbolicLink()) throw new Error(`symbolic link in Spec package: ${relative}`);
     if (stat.isDirectory()) assertRegularTree(path, relative);
     else if (!stat.isFile() || realpathSync(path) !== path) throw new Error(`non-regular Spec package entry: ${relative}`);
   }
+}
+
+function regularTreeSha256(at, prefix = "", hash = createHash("sha256")) {
+  for (const entry of readdirSync(at, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+    if (prefix === "" && entry.name === ".soksak-dependency.json") continue;
+    const path = join(at, entry.name); const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const stat = lstatSync(path);
+    if (stat.isSymbolicLink()) throw new Error(`symbolic link in Spec package: ${relative}`);
+    if (stat.isDirectory()) regularTreeSha256(path, relative, hash);
+    else if (stat.isFile() && realpathSync(path) === path) hash.update(relative).update("\0").update(readFileSync(path)).update("\0");
+    else throw new Error(`non-regular Spec package entry: ${relative}`);
+  }
+  return prefix === "" ? hash.digest("hex") : "";
+}
+
+function parseLockReference(lockValue) {
+  const lock = object(lockValue, "SDK Spec lock"); exactKeys(lock, ["reference", "schema"], "SDK Spec lock");
+  if (lock.schema !== "soksak-sdk-spec-lock-v1") throw new Error("unexpected SDK Spec lock schema");
+  const reference = object(lock.reference, "SDK Spec reference");
+  exactKeys(reference, ["id", "kind", "sha256", "size", "version"], "SDK Spec reference");
+  if (reference.kind !== "spec" || reference.id !== SPEC_ID || typeof reference.version !== "string" || !VERSION.test(reference.version) ||
+      !Number.isSafeInteger(reference.size) || reference.size < 1 || !SHA256.test(reference.sha256)) {
+    throw new Error("SDK Spec release reference mismatch");
+  }
+  return { kind: "spec", id: SPEC_ID, version: reference.version, size: reference.size, sha256: reference.sha256 };
 }
 
 export function validateArchiveEntries(verbose, names) {
@@ -70,12 +95,8 @@ export function validateArchiveEntries(verbose, names) {
 }
 
 export function parseSpecLock(lockValue, releaseBytes) {
-  const lock = object(lockValue, "SDK Spec lock"); exactKeys(lock, ["reference", "schema"], "SDK Spec lock");
-  if (lock.schema !== "soksak-sdk-spec-lock-v1") throw new Error("unexpected SDK Spec lock schema");
-  const reference = object(lock.reference, "SDK Spec reference");
-  exactKeys(reference, ["id", "kind", "sha256", "size", "version"], "SDK Spec reference");
-  if (reference.kind !== "spec" || reference.id !== SPEC_ID || typeof reference.version !== "string" || !VERSION.test(reference.version) ||
-      !Number.isSafeInteger(reference.size) || reference.size < 1 || !SHA256.test(reference.sha256) ||
+  const reference = parseLockReference(lockValue);
+  if (
       releaseBytes.length !== reference.size || sha256(releaseBytes) !== reference.sha256) {
     throw new Error("SDK Spec release reference mismatch");
   }
@@ -101,19 +122,41 @@ export function parseSpecLock(lockValue, releaseBytes) {
   };
 }
 
-function markerFor(resolved) {
+function markerFor(resolved, treeSha256) {
   return {
     release: resolved.reference,
     artifactSha256: resolved.artifact.sha256,
     sourceCommit: resolved.source.commit,
+    treeSha256,
   };
 }
 
 function sameMarker(destination, marker) {
   const path = join(destination, ".soksak-dependency.json");
   if (!existsSync(path)) return false;
-  try { return JSON.stringify(JSON.parse(regularFile(path, "Spec dependency marker"))) === JSON.stringify(marker); }
+  try {
+    return JSON.stringify(JSON.parse(regularFile(path, "Spec dependency marker"))) === JSON.stringify(marker) &&
+      regularTreeSha256(destination) === marker.treeSha256;
+  }
   catch { return false; }
+}
+
+export function readPreparedSpecDependency({ root, lock }) {
+  try {
+    if (!isAbsolute(root) || !existsSync(root) || lstatSync(root).isSymbolicLink() || realpathSync(root) !== root) return null;
+    const reference = parseLockReference(JSON.parse(regularFile(lock, "SDK Spec lock")));
+    const destination = join(root, ".dependencies", "soksak-spec");
+    if (!existsSync(destination) || lstatSync(destination).isSymbolicLink() || realpathSync(destination) !== destination) return null;
+    const marker = JSON.parse(regularFile(join(destination, ".soksak-dependency.json"), "Spec dependency marker"));
+    exactKeys(marker, ["artifactSha256", "release", "sourceCommit", "treeSha256"], "Spec dependency marker");
+    if (JSON.stringify(marker.release) !== JSON.stringify(reference) || !SHA256.test(marker.artifactSha256) ||
+        !COMMIT.test(marker.sourceCommit) || !SHA256.test(marker.treeSha256)) return null;
+    assertRegularTree(destination);
+    if (regularTreeSha256(destination) !== marker.treeSha256) return null;
+    const pkg = JSON.parse(regularFile(join(destination, "package.json"), "Spec package manifest"));
+    if (pkg.name !== SPEC_PACKAGE || pkg.version !== reference.version) return null;
+    return { destination, ...marker };
+  } catch { return null; }
 }
 
 export async function prepareSpecDependency({ root, lock, manifest, artifact }) {
@@ -127,8 +170,7 @@ export async function prepareSpecDependency({ root, lock, manifest, artifact }) 
     throw new Error("Spec artifact SHA-256 or size mismatch");
   }
   const dependencies = join(root, ".dependencies"); mkdirSync(dependencies, { recursive: true });
-  const destination = join(dependencies, "soksak-spec"); const marker = markerFor(resolved);
-  if (existsSync(destination) && sameMarker(destination, marker)) return { destination, ...marker };
+  const destination = join(dependencies, "soksak-spec");
   const stage = mkdtempSync(join(dependencies, ".prepare-")); const unpack = join(stage, "unpack"); mkdirSync(unpack);
   try {
     const verbose = run("tar", ["-tvzf", artifact], root).split("\n").filter(Boolean);
@@ -139,6 +181,8 @@ export async function prepareSpecDependency({ root, lock, manifest, artifact }) 
     const pkg = JSON.parse(regularFile(join(candidate, "package.json"), "Spec package manifest"));
     if (pkg.name !== SPEC_PACKAGE || pkg.version !== resolved.reference.version) throw new Error("Spec package identity mismatch");
     run(process.execPath, [join(candidate, "bin/validate.mjs"), "release", manifest], root);
+    const marker = markerFor(resolved, regularTreeSha256(candidate));
+    if (existsSync(destination) && sameMarker(destination, marker)) return { destination, ...marker };
     writeFileSync(join(candidate, ".soksak-dependency.json"), `${JSON.stringify(marker, null, 2)}\n`, { flag: "wx" });
     if (existsSync(destination)) {
       const previous = join(dependencies, `.previous-${process.pid}`); renameSync(destination, previous);
@@ -182,6 +226,10 @@ async function fetchBytes(url, label) {
 
 export async function prepareSpec(argv = process.argv.slice(2)) {
   const options = parseArgs(argv); const lockPath = join(sdkRoot, "sdk-spec.lock.json");
+  if (!options.manifest) {
+    const prepared = readPreparedSpecDependency({ root: realpathSync(sdkRoot), lock: lockPath });
+    if (prepared) return prepared;
+  }
   const lock = JSON.parse(regularFile(lockPath, "SDK Spec lock")); const reference = lock.reference;
   const releaseURL = `https://github.com/soksak-ai/soksak-spec/releases/download/v${reference.version}/release.json`;
   const manifestBytes = options.manifest ? regularFile(options.manifest, "Spec release") : await fetchBytes(releaseURL, "Spec release");
