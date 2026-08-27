@@ -2,369 +2,201 @@
 
 import { createHash } from "node:crypto";
 import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
+  existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
+  realpathSync, renameSync, rmSync, writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const SPEC_ID = "soksak-spec";
+const SPEC_PACKAGE = "@soksak/soksak-spec";
+const SPEC_REPOSITORY = "https://github.com/soksak-ai/soksak-spec";
 const MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024;
-const SHA256_RE = /^[a-f0-9]{64}$/;
-const COMMIT_RE = /^[a-f0-9]{40}$/;
-const STRICT_SEMVER_RE = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
-const DEPENDENCY_LOCK_SCHEMA = "soksak-platform-dependency-lock@0.0.1";
-const PLATFORM_RELEASE_SCHEMA = "soksak-spec-platform-release@0.0.1";
-const PLATFORM_SPEC_ID = "soksak-spec";
-const PLATFORM_SPEC_PACKAGE = "@soksak-ai/plugin-spec";
-const PLATFORM_SPEC_REPOSITORY = "https://github.com/soksak-ai/soksak-spec";
+const SHA256 = /^[a-f0-9]{64}$/;
+const COMMIT = /^[a-f0-9]{40}$/;
+const VERSION = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
-function sha256(bytes) {
-  return createHash("sha256").update(bytes).digest("hex");
-}
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const packageArchiveName = (version) => `soksak-soksak-spec-${version}.tgz`;
 
 function object(value, label) {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${label}: object required`);
-  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label}: object required`);
   return value;
 }
 
 function exactKeys(value, expected, label) {
-  const actual = Object.keys(value).sort();
-  const wanted = [...expected].sort();
+  const actual = Object.keys(value).sort(); const wanted = [...expected].sort();
   if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
     throw new Error(`${label}: keys must be exactly ${wanted.join(",")}`);
   }
 }
 
-function canonicalReleaseAsset(url, expected) {
-  let parsed;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-  const path = parsed.pathname.split("/").filter(Boolean);
-  return parsed.protocol === "https:" &&
-    parsed.hostname === "github.com" &&
-    parsed.port === "" &&
-    parsed.username === "" &&
-    parsed.password === "" &&
-    parsed.search === "" &&
-    parsed.hash === "" &&
-    parsed.toString() === url &&
-    path.length === 6 &&
-    path[0] === expected.owner &&
-    path[1] === expected.repository &&
-    path[2] === "releases" &&
-    path[3] === "download" &&
-    path[4] === expected.tag &&
-    path[5] === expected.asset;
-}
-
-function strictSemver(value, label) {
-  if (typeof value !== "string" || value.length > 256 || !STRICT_SEMVER_RE.test(value)) {
-    throw new Error(`${label}: strict SemVer required`);
-  }
-  return value;
-}
-
-function packageArchiveName(name, version) {
-  return `${name.replace(/^@/, "").replace("/", "-")}-${version}.tgz`;
-}
-
-export function parseArgs(argv) {
-  if (argv.length === 0) return {};
-  if (argv.length !== 4) {
-    throw new Error("--manifest and --artifact must be supplied together");
-  }
-  const values = new Map();
-  for (let index = 0; index < argv.length; index += 2) {
-    const flag = argv[index];
-    const value = argv[index + 1];
-    if ((flag !== "--manifest" && flag !== "--artifact") || values.has(flag)) {
-      throw new Error("usage: prepare-spec.mjs [--manifest <absolute> --artifact <absolute>]");
-    }
-    if (!isAbsolute(value)) throw new Error(`${flag} path must be absolute`);
-    values.set(flag, value);
-  }
-  if (!values.has("--manifest") || !values.has("--artifact")) {
-    throw new Error("--manifest and --artifact must be supplied together");
-  }
-  return { manifest: values.get("--manifest"), artifact: values.get("--artifact") };
-}
-
-export function resolveLockedSpec(lockValue, manifestBytes) {
-  const lock = object(lockValue, "dependency lock");
-  exactKeys(lock, ["dependencies", "schema"], "dependency lock");
-  if (lock.schema !== DEPENDENCY_LOCK_SCHEMA) {
-    throw new Error("unexpected dependency lock schema");
-  }
-  if (!Array.isArray(lock.dependencies) || lock.dependencies.length !== 1) {
-    throw new Error("dependency lock must contain exactly one spec dependency");
-  }
-  const dependency = object(lock.dependencies[0], "dependency");
-  exactKeys(dependency, ["id", "kind", "manifest", "source", "version"], "dependency");
-  if (dependency.kind !== "spec" || dependency.id !== PLATFORM_SPEC_ID) {
-    throw new Error("unexpected platform dependency identity");
-  }
-  const dependencyVersion = strictSemver(dependency.version, "dependency.version");
-  const source = object(dependency.source, "dependency.source");
-  exactKeys(source, ["commit", "repository"], "dependency.source");
-  if (source.repository !== PLATFORM_SPEC_REPOSITORY || !COMMIT_RE.test(source.commit)) {
-    throw new Error("unexpected dependency source");
-  }
-  const manifestReference = object(dependency.manifest, "dependency.manifest");
-  exactKeys(manifestReference, ["sha256", "url"], "dependency.manifest");
-  if (!SHA256_RE.test(manifestReference.sha256)) throw new Error("invalid manifest SHA-256");
-  if (sha256(manifestBytes) !== manifestReference.sha256) {
-    throw new Error("manifest SHA-256 mismatch");
-  }
-
-  let manifest;
-  try {
-    manifest = object(JSON.parse(manifestBytes.toString("utf8")), "spec manifest");
-  } catch (error) {
-    throw new Error(`invalid spec manifest JSON: ${error.message}`);
-  }
-  if (
-    manifest.spec !== PLATFORM_RELEASE_SCHEMA ||
-    manifest.kind !== dependency.kind ||
-    manifest.id !== dependency.id ||
-    manifest.version !== dependencyVersion ||
-    manifest.releaseTag !== `${dependency.id}-v${dependencyVersion}`
-  ) {
-    throw new Error("unexpected spec manifest identity");
-  }
-  if (
-    manifest.source?.repository !== source.repository ||
-    manifest.source?.commit !== source.commit
-  ) {
-    throw new Error("unexpected spec source commit");
-  }
-  if (!canonicalReleaseAsset(manifestReference.url, {
-    owner: "soksak-ai",
-    repository: "soksak-spec",
-    tag: manifest.releaseTag,
-    asset: "soksak-spec-release.json",
-  })) {
-    throw new Error("unexpected spec manifest URL");
-  }
-  if (!Array.isArray(manifest.dependencies) || manifest.dependencies.length !== 0) {
-    throw new Error("spec manifest dependency closure must be empty");
-  }
-  if (!Array.isArray(manifest.packages)) throw new Error("spec package inventory required");
-  const matches = manifest.packages.filter(
-    (item) => item?.ecosystem === "javascript" && item?.name === PLATFORM_SPEC_PACKAGE,
-  );
-  if (matches.length !== 1) throw new Error("exactly one plugin-spec package required");
-  const packageEntry = matches[0];
-  if (packageEntry.version !== dependencyVersion || packageEntry.artifact?.format !== "tgz") {
-    throw new Error("unexpected plugin-spec package version or format");
-  }
-  if (!SHA256_RE.test(packageEntry.artifact.sha256)) throw new Error("invalid artifact SHA-256");
-  if (!canonicalReleaseAsset(packageEntry.artifact.url, {
-    owner: "soksak-ai",
-    repository: "soksak-spec",
-    tag: manifest.releaseTag,
-    asset: packageArchiveName(PLATFORM_SPEC_PACKAGE, dependencyVersion),
-  })) {
-    throw new Error("unexpected plugin-spec artifact URL");
-  }
-  return {
-    commit: source.commit,
-    version: dependencyVersion,
-    packageName: PLATFORM_SPEC_PACKAGE,
-    releaseSchema: manifest.spec,
-    releaseTag: manifest.releaseTag,
-    manifest: { url: manifestReference.url, sha256: manifestReference.sha256 },
-    artifact: { url: packageEntry.artifact.url, sha256: packageEntry.artifact.sha256 },
-  };
-}
-
-export function validateArchiveEntries(verbose, names) {
-  const nonRegular = verbose.find((line) => line.length > 0 && !line.startsWith("-"));
-  if (nonRegular) throw new Error(`non-regular archive entry: ${nonRegular}`);
-  if (names.length === 0) throw new Error("empty archive");
-  if (new Set(names).size !== names.length) throw new Error("duplicate archive entry");
-  for (const name of names) {
-    const segments = name.split("/");
-    if (
-      !name.startsWith("package/") ||
-      name.startsWith("/") ||
-      segments.some((segment) => segment === "" || segment === "." || segment === "..")
-    ) {
-      throw new Error(`unsafe archive path: ${name}`);
-    }
-  }
-  return names;
-}
-
 function regularFile(path, label) {
+  if (!isAbsolute(path)) throw new Error(`${label}: absolute path required`);
   const stat = lstatSync(path);
-  if (stat.isSymbolicLink() || !stat.isFile()) throw new Error(`${label}: regular file required`);
+  if (!stat.isFile() || stat.isSymbolicLink() || realpathSync(path) !== path) throw new Error(`${label}: regular file required`);
   return readFileSync(path);
 }
 
-function githubDownloadHost(hostname) {
-  return hostname === "github.com" ||
-    hostname === "githubusercontent.com" ||
-    hostname.endsWith(".githubusercontent.com");
-}
-
-async function fetchBytes(url, label) {
-  let current = url;
-  for (let redirects = 0; redirects <= 5; redirects += 1) {
-    const response = await fetch(current, { signal: AbortSignal.timeout(30_000), redirect: "manual" });
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (!location) throw new Error(`${label}: redirect without a location`);
-      const next = new URL(location, current);
-      if (next.protocol !== "https:" || !githubDownloadHost(next.hostname)) {
-        throw new Error(`${label}: redirect to a disallowed target`);
-      }
-      current = next.toString();
-      continue;
-    }
-    if (!response.ok) throw new Error(`${label}: HTTP ${response.status}`);
-    const declared = Number(response.headers.get("content-length") ?? "0");
-    if (declared > MAX_DOWNLOAD_BYTES) throw new Error(`${label}: declared size exceeds limit`);
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length > MAX_DOWNLOAD_BYTES) throw new Error(`${label}: size exceeds limit`);
-    return bytes;
-  }
-  throw new Error(`${label}: too many redirects`);
-}
-
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    cwd: options.cwd ?? root,
-    encoding: "utf8",
-    env: process.env,
-  });
-  if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(" ")} failed\n${result.stdout ?? ""}${result.stderr ?? ""}`);
-  }
+function run(command, args, cwd) {
+  const result = spawnSync(command, args, { cwd, encoding: "utf8" });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} failed\n${result.stdout}${result.stderr}`);
   return result.stdout.trim();
 }
 
 function assertRegularTree(at, prefix = "") {
   for (const entry of readdirSync(at, { withFileTypes: true })) {
-    const path = join(at, entry.name);
-    const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const path = join(at, entry.name); const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
     const stat = lstatSync(path);
-    if (stat.isSymbolicLink()) throw new Error(`symbolic link in dependency: ${relative}`);
+    if (stat.isSymbolicLink()) throw new Error(`symbolic link in Spec package: ${relative}`);
     if (stat.isDirectory()) assertRegularTree(path, relative);
-    else if (!stat.isFile()) throw new Error(`non-regular dependency entry: ${relative}`);
+    else if (!stat.isFile() || realpathSync(path) !== path) throw new Error(`non-regular Spec package entry: ${relative}`);
   }
 }
 
-function installPreparedPackage(artifactBytes, manifestBytes, resolvedSpec) {
-  if (sha256(artifactBytes) !== resolvedSpec.artifact.sha256) {
-    throw new Error("artifact SHA-256 mismatch");
-  }
-  const dependencies = join(root, ".dependencies");
-  mkdirSync(dependencies, { recursive: true });
-  const stage = mkdtempSync(join(dependencies, ".prepare-"));
-  const archive = join(stage, "plugin-spec.tgz");
-  const manifest = join(stage, "soksak-spec-release.json");
-  const unpack = join(stage, "unpack");
-  mkdirSync(unpack);
-  writeFileSync(archive, artifactBytes);
-  writeFileSync(manifest, manifestBytes);
-  try {
-    const verbose = run("tar", ["-tvzf", archive]).split("\n").filter(Boolean);
-    const names = run("tar", ["-tzf", archive]).split("\n").filter(Boolean);
-    validateArchiveEntries(verbose, names);
-    run("tar", ["-xzf", archive, "-C", unpack]);
-    const candidate = join(unpack, "package");
-    assertRegularTree(candidate);
-    const packageJson = JSON.parse(regularFile(join(candidate, "package.json"), "plugin-spec package").toString("utf8"));
-    if (
-      packageJson.name !== PLATFORM_SPEC_PACKAGE ||
-      packageJson.version !== resolvedSpec.version ||
-      packageJson.private !== true ||
-      packageJson.publishConfig !== undefined
-    ) {
-      throw new Error("unexpected plugin-spec package identity or publication policy");
+export function validateArchiveEntries(verbose, names) {
+  if (names.length === 0 || new Set(names).size !== names.length) throw new Error("Spec archive entries must be non-empty and unique");
+  for (let index = 0; index < names.length; index += 1) {
+    const name = names[index]; const type = verbose[index]?.[0]; const segments = name.split("/").filter(Boolean);
+    if ((type !== "-" && type !== "d") || !name.startsWith("package/") || name.startsWith("/") ||
+        segments.some((segment) => segment === "." || segment === "..")) {
+      throw new Error(`unsafe Spec archive entry: ${name}`);
     }
-    run(process.execPath, [join(candidate, "bin/validate.mjs"), "platform-release", manifest]);
-    writeFileSync(
-      join(candidate, ".soksak-dependency.json"),
-      `${JSON.stringify({
-        manifestSha256: resolvedSpec.manifest.sha256,
-        artifactSha256: resolvedSpec.artifact.sha256,
-        sourceCommit: resolvedSpec.commit,
-      }, null, 2)}\n`,
-    );
-
-    const destination = join(dependencies, "plugin-spec");
-    if (existsSync(destination)) {
-      assertRegularTree(destination);
-      const markerPath = join(destination, ".soksak-dependency.json");
-      if (existsSync(markerPath)) {
-        const marker = JSON.parse(regularFile(markerPath, "dependency marker").toString("utf8"));
-        if (
-          marker.manifestSha256 === resolvedSpec.manifest.sha256 &&
-          marker.artifactSha256 === resolvedSpec.artifact.sha256 &&
-          marker.sourceCommit === resolvedSpec.commit
-        ) {
-          return destination;
-        }
-      }
-      const backup = join(dependencies, `.previous-${process.pid}`);
-      if (existsSync(backup)) throw new Error(`dependency backup already exists: ${backup}`);
-      renameSync(destination, backup);
-      try {
-        renameSync(candidate, destination);
-        rmSync(backup, { recursive: true, force: true });
-      } catch (error) {
-        if (!existsSync(destination) && existsSync(backup)) renameSync(backup, destination);
-        throw error;
-      }
-    } else {
-      renameSync(candidate, destination);
-    }
-    return destination;
-  } finally {
-    rmSync(stage, { recursive: true, force: true });
   }
+  return names;
 }
 
-export async function prepareSpec(argv = process.argv.slice(2)) {
-  const options = parseArgs(argv);
-  const lock = JSON.parse(readFileSync(join(root, "platform-dependencies.json"), "utf8"));
-  const lockedManifestBytes = regularFile(
-    join(root, "soksak-spec-release.lock.json"),
-    "locked spec manifest",
-  );
-  const locked = resolveLockedSpec(lock, lockedManifestBytes);
-  const manifestBytes = options.manifest
-    ? regularFile(options.manifest, "local spec manifest")
-    : await fetchBytes(locked.manifest.url, "spec manifest");
-  const resolved = resolveLockedSpec(lock, manifestBytes);
-  const artifactBytes = options.artifact
-    ? regularFile(options.artifact, "local spec artifact")
-    : await fetchBytes(resolved.artifact.url, "plugin-spec artifact");
-  const destination = installPreparedPackage(artifactBytes, manifestBytes, resolved);
+export function parseSpecLock(lockValue, releaseBytes) {
+  const lock = object(lockValue, "SDK Spec lock"); exactKeys(lock, ["reference", "schema"], "SDK Spec lock");
+  if (lock.schema !== "soksak-sdk-spec-lock-v1") throw new Error("unexpected SDK Spec lock schema");
+  const reference = object(lock.reference, "SDK Spec reference");
+  exactKeys(reference, ["id", "kind", "sha256", "size", "version"], "SDK Spec reference");
+  if (reference.kind !== "spec" || reference.id !== SPEC_ID || typeof reference.version !== "string" || !VERSION.test(reference.version) ||
+      !Number.isSafeInteger(reference.size) || reference.size < 1 || !SHA256.test(reference.sha256) ||
+      releaseBytes.length !== reference.size || sha256(releaseBytes) !== reference.sha256) {
+    throw new Error("SDK Spec release reference mismatch");
+  }
+  let release;
+  try { release = object(JSON.parse(releaseBytes.toString("utf8")), "Spec release"); }
+  catch (error) { throw new Error(`invalid Spec release JSON: ${error.message}`); }
+  exactKeys(release, ["artifacts", "evidence", "id", "kind", "manifest", "source", "version"], "Spec release");
+  if (release.kind !== "spec" || release.id !== SPEC_ID || release.version !== reference.version) throw new Error("SDK Spec release identity mismatch");
+  const source = object(release.source, "Spec release source"); exactKeys(source, ["commit", "repository"], "Spec release source");
+  if (source.repository !== SPEC_REPOSITORY || !COMMIT.test(source.commit)) throw new Error("SDK Spec release source mismatch");
+  if (!Array.isArray(release.artifacts) || release.artifacts.length !== 1) throw new Error("SDK Spec release requires one artifact");
+  const artifact = object(release.artifacts[0], "Spec release artifact");
+  exactKeys(artifact, ["file", "format", "manifest", "sha256", "size", "target"], "Spec release artifact");
+  if (artifact.target !== "any" || artifact.format !== "tgz" || artifact.manifest !== "spec.json" ||
+      artifact.file !== packageArchiveName(reference.version) || !Number.isSafeInteger(artifact.size) || artifact.size < 1 || !SHA256.test(artifact.sha256)) {
+    throw new Error("SDK Spec release artifact mismatch");
+  }
   return {
-    destination,
-    sourceCommit: resolved.commit,
-    manifestSha256: resolved.manifest.sha256,
-    artifactSha256: resolved.artifact.sha256,
+    reference: { kind: "spec", id: SPEC_ID, version: reference.version, size: reference.size, sha256: reference.sha256 },
+    source: { repository: source.repository, commit: source.commit },
+    artifact: { target: "any", file: artifact.file, size: artifact.size, sha256: artifact.sha256, format: "tgz", manifest: "spec.json" },
+    package: { name: SPEC_PACKAGE, version: reference.version },
   };
 }
 
+function markerFor(resolved) {
+  return {
+    release: resolved.reference,
+    artifactSha256: resolved.artifact.sha256,
+    sourceCommit: resolved.source.commit,
+  };
+}
+
+function sameMarker(destination, marker) {
+  const path = join(destination, ".soksak-dependency.json");
+  if (!existsSync(path)) return false;
+  try { return JSON.stringify(JSON.parse(regularFile(path, "Spec dependency marker"))) === JSON.stringify(marker); }
+  catch { return false; }
+}
+
+export async function prepareSpecDependency({ root, lock, manifest, artifact }) {
+  if (!isAbsolute(root) || !existsSync(root) || lstatSync(root).isSymbolicLink() || realpathSync(root) !== root) {
+    throw new Error("SDK root must be an absolute regular directory");
+  }
+  const releaseBytes = regularFile(manifest, "Spec release");
+  const resolved = parseSpecLock(JSON.parse(regularFile(lock, "SDK Spec lock")), releaseBytes);
+  const artifactBytes = regularFile(artifact, "Spec artifact");
+  if (artifactBytes.length !== resolved.artifact.size || sha256(artifactBytes) !== resolved.artifact.sha256) {
+    throw new Error("Spec artifact SHA-256 or size mismatch");
+  }
+  const dependencies = join(root, ".dependencies"); mkdirSync(dependencies, { recursive: true });
+  const destination = join(dependencies, "soksak-spec"); const marker = markerFor(resolved);
+  if (existsSync(destination) && sameMarker(destination, marker)) return { destination, ...marker };
+  const stage = mkdtempSync(join(dependencies, ".prepare-")); const unpack = join(stage, "unpack"); mkdirSync(unpack);
+  try {
+    const verbose = run("tar", ["-tvzf", artifact], root).split("\n").filter(Boolean);
+    const names = run("tar", ["-tzf", artifact], root).split("\n").filter(Boolean);
+    validateArchiveEntries(verbose, names);
+    run("tar", ["-xzf", artifact, "-C", unpack], root);
+    const candidate = join(unpack, "package"); assertRegularTree(candidate);
+    const pkg = JSON.parse(regularFile(join(candidate, "package.json"), "Spec package manifest"));
+    if (pkg.name !== SPEC_PACKAGE || pkg.version !== resolved.reference.version) throw new Error("Spec package identity mismatch");
+    run(process.execPath, [join(candidate, "bin/validate.mjs"), "release", manifest], root);
+    writeFileSync(join(candidate, ".soksak-dependency.json"), `${JSON.stringify(marker, null, 2)}\n`, { flag: "wx" });
+    if (existsSync(destination)) {
+      const previous = join(dependencies, `.previous-${process.pid}`); renameSync(destination, previous);
+      try { renameSync(candidate, destination); rmSync(previous, { recursive: true, force: true }); }
+      catch (error) { if (!existsSync(destination) && existsSync(previous)) renameSync(previous, destination); throw error; }
+    } else renameSync(candidate, destination);
+    return { destination, ...marker };
+  } finally { rmSync(stage, { recursive: true, force: true }); }
+}
+
+export function parseArgs(argv) {
+  if (argv.length === 0) return {};
+  if (argv.length !== 4) throw new Error("--manifest and --artifact must be supplied together");
+  const values = new Map();
+  for (let index = 0; index < argv.length; index += 2) {
+    const key = argv[index]; const value = argv[index + 1];
+    if ((key !== "--manifest" && key !== "--artifact") || values.has(key) || !isAbsolute(value)) throw new Error("usage: prepare-spec.mjs [--manifest <absolute> --artifact <absolute>]");
+    values.set(key, value);
+  }
+  if (!values.has("--manifest") || !values.has("--artifact")) throw new Error("--manifest and --artifact must be supplied together");
+  return { manifest: values.get("--manifest"), artifact: values.get("--artifact") };
+}
+
+async function fetchBytes(url, label) {
+  let current = url;
+  for (let count = 0; count <= 5; count += 1) {
+    const response = await fetch(current, { redirect: "manual", signal: AbortSignal.timeout(30_000) });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location"); if (!location) throw new Error(`${label}: redirect without location`);
+      const next = new URL(location, current);
+      if (next.protocol !== "https:" || (next.hostname !== "github.com" && !next.hostname.endsWith(".githubusercontent.com"))) throw new Error(`${label}: disallowed redirect`);
+      current = next.toString(); continue;
+    }
+    if (!response.ok) throw new Error(`${label}: HTTP ${response.status}`);
+    const content = Buffer.from(await response.arrayBuffer());
+    if (content.length > MAX_DOWNLOAD_BYTES) throw new Error(`${label}: size exceeds limit`);
+    return content;
+  }
+  throw new Error(`${label}: too many redirects`);
+}
+
+export async function prepareSpec(argv = process.argv.slice(2)) {
+  const options = parseArgs(argv); const lockPath = join(sdkRoot, "sdk-spec.lock.json");
+  const lock = JSON.parse(regularFile(lockPath, "SDK Spec lock")); const reference = lock.reference;
+  const releaseURL = `https://github.com/soksak-ai/soksak-spec/releases/download/v${reference.version}/release.json`;
+  const manifestBytes = options.manifest ? regularFile(options.manifest, "Spec release") : await fetchBytes(releaseURL, "Spec release");
+  const resolved = parseSpecLock(lock, manifestBytes);
+  const artifactURL = `https://github.com/soksak-ai/soksak-spec/releases/download/v${reference.version}/${resolved.artifact.file}`;
+  const artifactBytes = options.artifact ? regularFile(options.artifact, "Spec artifact") : await fetchBytes(artifactURL, "Spec artifact");
+  const stage = mkdtempSync(join(realpathSync(sdkRoot), ".spec-input-"));
+  try {
+    const manifest = join(stage, "release.json"); const artifact = join(stage, resolved.artifact.file);
+    writeFileSync(manifest, manifestBytes); writeFileSync(artifact, artifactBytes);
+    return await prepareSpecDependency({ root: realpathSync(sdkRoot), lock: lockPath, manifest, artifact });
+  } finally { rmSync(stage, { recursive: true, force: true }); }
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const result = await prepareSpec();
-  console.log(JSON.stringify(result));
+  try { process.stdout.write(`${JSON.stringify(await prepareSpec())}\n`); }
+  catch (error) { process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`); process.exitCode = 1; }
 }
