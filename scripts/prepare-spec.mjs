@@ -71,15 +71,15 @@ function regularTreeSha256(at, prefix = "", hash = createHash("sha256")) {
 }
 
 function parseLockReference(lockValue) {
-  const lock = object(lockValue, "SDK Spec lock"); exactKeys(lock, ["reference", "schema"], "SDK Spec lock");
-  if (lock.schema !== "soksak-sdk-spec-lock-v1") throw new Error("unexpected SDK Spec lock schema");
+  const lock = object(lockValue, "SDK Spec lock"); exactKeys(lock, ["reference"], "SDK Spec lock");
   const reference = object(lock.reference, "SDK Spec reference");
-  exactKeys(reference, ["id", "kind", "sha256", "size", "version"], "SDK Spec reference");
+  exactKeys(reference, ["file", "id", "kind", "sha256", "size", "target", "version"], "SDK Spec reference");
   if (reference.kind !== "spec" || reference.id !== SPEC_ID || typeof reference.version !== "string" || !VERSION.test(reference.version) ||
+      reference.target !== "any" || reference.file !== packageArchiveName(reference.version) ||
       !Number.isSafeInteger(reference.size) || reference.size < 1 || !SHA256.test(reference.sha256)) {
-    throw new Error("SDK Spec release reference mismatch");
+    throw new Error("SDK Spec artifact reference mismatch");
   }
-  return { kind: "spec", id: SPEC_ID, version: reference.version, size: reference.size, sha256: reference.sha256 };
+  return { kind: "spec", id: SPEC_ID, version: reference.version, target: "any", file: reference.file, size: reference.size, sha256: reference.sha256 };
 }
 
 export function validateArchiveEntries(verbose, names) {
@@ -96,10 +96,6 @@ export function validateArchiveEntries(verbose, names) {
 
 export function parseSpecLock(lockValue, releaseBytes) {
   const reference = parseLockReference(lockValue);
-  if (
-      releaseBytes.length !== reference.size || sha256(releaseBytes) !== reference.sha256) {
-    throw new Error("SDK Spec release reference mismatch");
-  }
   let release;
   try { release = object(JSON.parse(releaseBytes.toString("utf8")), "Spec release"); }
   catch (error) { throw new Error(`invalid Spec release JSON: ${error.message}`); }
@@ -111,20 +107,20 @@ export function parseSpecLock(lockValue, releaseBytes) {
   const artifact = object(release.artifacts[0], "Spec release artifact");
   exactKeys(artifact, ["file", "format", "manifest", "sha256", "size", "target"], "Spec release artifact");
   if (artifact.target !== "any" || artifact.format !== "tgz" || artifact.manifest !== "spec.json" ||
-      artifact.file !== packageArchiveName(reference.version) || !Number.isSafeInteger(artifact.size) || artifact.size < 1 || !SHA256.test(artifact.sha256)) {
+      artifact.file !== reference.file || artifact.size !== reference.size || artifact.sha256 !== reference.sha256) {
     throw new Error("SDK Spec release artifact mismatch");
   }
   return {
-    reference: { kind: "spec", id: SPEC_ID, version: reference.version, size: reference.size, sha256: reference.sha256 },
+    reference,
     source: { repository: source.repository, commit: source.commit },
     artifact: { target: "any", file: artifact.file, size: artifact.size, sha256: artifact.sha256, format: "tgz", manifest: "spec.json" },
     package: { name: SPEC_PACKAGE, version: reference.version },
   };
 }
 
-function markerFor(resolved, treeSha256) {
+function markerFor(resolved, treeSha256, releaseBytes) {
   return {
-    release: resolved.reference,
+    release: { kind: "spec", id: SPEC_ID, version: resolved.reference.version, size: releaseBytes.length, sha256: sha256(releaseBytes) },
     artifactSha256: resolved.artifact.sha256,
     sourceCommit: resolved.source.commit,
     treeSha256,
@@ -151,13 +147,16 @@ export function readPreparedSpecDependency({ root, lock }) {
     if (!existsSync(destination) || lstatSync(destination).isSymbolicLink() || realpathSync(destination) !== destination) return null;
     const marker = JSON.parse(regularFile(join(destination, ".soksak-dependency.json"), "Spec dependency marker"));
     exactKeys(marker, ["artifactSha256", "release", "sourceCommit", "treeSha256"], "Spec dependency marker");
-    if (JSON.stringify(marker.release) !== JSON.stringify(reference) || !SHA256.test(marker.artifactSha256) ||
+    if (marker.release?.kind !== "spec" || marker.release.id !== SPEC_ID || marker.release.version !== reference.version ||
+        !Number.isSafeInteger(marker.release.size) || marker.release.size < 1 || !SHA256.test(marker.release.sha256) ||
+        marker.artifactSha256 !== reference.sha256 ||
         !COMMIT.test(marker.sourceCommit) || !SHA256.test(marker.treeSha256)) return null;
     assertRegularTree(destination);
     if (regularTreeSha256(destination) !== marker.treeSha256) return null;
     const releaseBytes = regularFile(join(destination, ".soksak-release.json"), "Spec release document");
     const resolved = parseSpecLock(lockValue, releaseBytes);
-    if (resolved.artifact.sha256 !== marker.artifactSha256 || resolved.source.commit !== marker.sourceCommit) return null;
+    if (releaseBytes.length !== marker.release.size || sha256(releaseBytes) !== marker.release.sha256 ||
+        resolved.artifact.sha256 !== marker.artifactSha256 || resolved.source.commit !== marker.sourceCommit) return null;
     const pkg = JSON.parse(regularFile(join(destination, "package.json"), "Spec package manifest"));
     if (pkg.name !== SPEC_PACKAGE || pkg.version !== reference.version) return null;
     return { destination, ...marker };
@@ -186,7 +185,7 @@ export async function prepareSpecDependency({ root, lock, manifest, artifact }) 
     const pkg = JSON.parse(regularFile(join(candidate, "package.json"), "Spec package manifest"));
     if (pkg.name !== SPEC_PACKAGE || pkg.version !== resolved.reference.version) throw new Error("Spec package identity mismatch");
     run(process.execPath, [join(candidate, "bin/validate.mjs"), "release", manifest], root);
-    const marker = markerFor(resolved, regularTreeSha256(candidate));
+    const marker = markerFor(resolved, regularTreeSha256(candidate), releaseBytes);
     if (existsSync(destination) && sameMarker(destination, marker, releaseBytes)) return { destination, ...marker };
     writeFileSync(join(candidate, ".soksak-release.json"), releaseBytes, { flag: "wx" });
     writeFileSync(join(candidate, ".soksak-dependency.json"), `${JSON.stringify(marker, null, 2)}\n`, { flag: "wx" });

@@ -1,10 +1,11 @@
 {
-  "schema": "soksak-sdk-spec-lock-v1",
   "reference": {
     "kind": "spec",
     "id": "soksak-spec",
-    "version": "0.0.37",
-    "size": 946,
-    "sha256": "5c06fccd52769a313f4e2fb63279b091e83313fb393991410a58a87d4012c197"
+    "version": "0.0.41",
+    "target": "any",
+    "file": "soksak-soksak-spec-0.0.41.tgz",
+    "size": 130182,
+    "sha256": "7b4f100041c842c7fbeea1c2f96839767a57bcb08318edc2da45a3847cf09bcd"
   }
 }

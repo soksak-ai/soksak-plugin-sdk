@@ -30,7 +30,7 @@ function fixture() {
     evidence: [{ file: "conformance-release.json", size: 34, sha256: "d".repeat(64) }],
   };
   const releaseBytes = Buffer.from(`${JSON.stringify(release)}\n`); const releasePath = join(root, "release.json"); writeFileSync(releasePath, releaseBytes);
-  const lock = { schema: "soksak-sdk-spec-lock-v1", reference: { kind: "spec", id: "soksak-spec", version: "0.0.36", size: releaseBytes.length, sha256: sha256(releaseBytes) } };
+  const lock = { reference: { kind: "spec", id: "soksak-spec", version: "0.0.36", target: "any", file: release.artifacts[0].file, size: release.artifacts[0].size, sha256: release.artifacts[0].sha256 } };
   const lockPath = join(root, "sdk-spec.lock.json"); writeFileSync(lockPath, `${JSON.stringify(lock)}\n`);
   return { root, lockPath, releasePath, artifactPath };
 }

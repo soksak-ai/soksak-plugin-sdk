@@ -20,8 +20,7 @@ function release() {
 test("SDK Spec lock pins one location-free release reference", () => {
   const document = release(); const encoded = bytes(document);
   const lock = {
-    schema: "soksak-sdk-spec-lock-v1",
-    reference: { kind: "spec", id: "soksak-spec", version: "0.0.36", size: encoded.length, sha256: sha256(encoded) },
+    reference: { kind: "spec", id: "soksak-spec", version: "0.0.36", target: "any", file: document.artifacts[0].file, size: document.artifacts[0].size, sha256: document.artifacts[0].sha256 },
   };
   assert.deepEqual(parseSpecLock(lock, encoded), {
     reference: lock.reference,
@@ -32,12 +31,11 @@ test("SDK Spec lock pins one location-free release reference", () => {
   assert.equal(JSON.stringify(lock).includes("url"), false);
 });
 
-test("SDK Spec lock rejects changed release bytes and legacy release fields", () => {
+test("SDK Spec lock rejects changed release identity and unknown lock fields", () => {
   const document = release(); const encoded = bytes(document);
   const lock = {
-    schema: "soksak-sdk-spec-lock-v1",
-    reference: { kind: "spec", id: "soksak-spec", version: "0.0.36", size: encoded.length, sha256: sha256(encoded) },
+    reference: { kind: "spec", id: "soksak-spec", version: "0.0.36", target: "any", file: document.artifacts[0].file, size: document.artifacts[0].size, sha256: document.artifacts[0].sha256 },
   };
-  assert.throws(() => parseSpecLock(lock, bytes({ ...document, version: "0.0.37" })), /reference/);
+  assert.throws(() => parseSpecLock(lock, bytes({ ...document, version: "0.0.37" })), /identity/);
   assert.throws(() => parseSpecLock({ ...lock, dependencies: [] }, encoded), /keys/);
 });
