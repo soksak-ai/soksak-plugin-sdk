@@ -40,4 +40,13 @@ describe("Plugin author SDK", () => {
       expect(source).not.toContain(forbidden);
     }
   });
+
+  it("documents isolation, availability, preview, and native conformance", () => {
+    for (const name of ["README.md", "README.ko.md"]) {
+      const document = readFileSync(join(import.meta.dirname, `../${name}`), "utf8");
+      for (const rule of ["opaque-origin", "availability", "Command Registry", "preview", "native conformance"]) {
+        expect(document).toContain(rule);
+      }
+    }
+  });
 });
