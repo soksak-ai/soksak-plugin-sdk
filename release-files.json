@@ -1,0 +1,12 @@
+[
+  "LICENSE",
+  "README.ko.md",
+  "README.md",
+  "bin/soksak-sdk.mjs",
+  "dist/component-tools.d.ts",
+  "dist/component-tools.js",
+  "dist/plugin.d.ts",
+  "dist/plugin.js",
+  "kit.json",
+  "package.json"
+]

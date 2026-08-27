@@ -1,5 +1,10 @@
 packages:
+  - "."
   - "packages/plugin-api"
 autoInstallPeers: false
 nodeLinker: hoisted
 preferSymlinkedExecutables: false
+symlink: false
+engineStrict: true
+pmOnFail: error
+verifyDepsBeforeRun: error

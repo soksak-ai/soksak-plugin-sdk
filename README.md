@@ -1,27 +1,16 @@
-# soksak plugin SDK 0.0.1
+# soksak SDK
 
-This public repository owns the author-facing SDK for isolated soksak plugins. It does not
-own the platform wire, a runtime plugin, or any plugin-specific domain contract. The public
-wire is released by `soksak-spec`; this SDK consumes its exact GitHub Release manifest and
-artifact bytes.
+Public author-tooling Kit that gives Plugin, Sidecar, Kit, Contract, and Spec repositories one
+build, verification, and packaging boundary.
 
-Nothing in this repository is published to npm. GitHub Release assets are the distribution
-source. `platform-dependencies.json` pins the spec manifest URL and SHA-256, while the
-checked-in `soksak-spec-release.lock.json` is the exact manifest byte stream used to build
-and test this revision.
+- `@soksak/soksak-sdk/plugin` is the isolated Plugin author API.
+- `@soksak/soksak-sdk/component-tools` exposes the common five-kind types.
+- The `soksak-sdk` CLI exposes inspect, verify, receipt, scaffold, and package commands.
 
-## Local verification before the first remote release
-
-An explicit local override may supply already-built bytes. Both paths must be absolute and
-regular files; their SHA-256 must match the committed dependency lock.
+soksak-spec owns rules and wire formats. The SDK is an implementation consuming one exact Spec
+release, not release identity. Component publication verifies manifests, artifacts, conformance,
+and the `soksak-component-build-receipt-v1` receipt rather than trusting an SDK dependency name.
 
 ```sh
-node scripts/prepare-spec.mjs \
-  --manifest /absolute/path/to/soksak-spec-release.json \
-  --artifact /absolute/path/to/soksak-ai-plugin-spec-0.0.1.tgz
-pnpm test
+make verify
 ```
-
-Without the override, `prepare-spec.mjs` fetches exactly the two immutable GitHub Release
-URLs in the verified manifest. It never resolves a branch, `latest`, npm package, guessed
-relative path, or symlink.
