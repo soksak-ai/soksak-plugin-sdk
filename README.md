@@ -24,4 +24,11 @@ disabled for a target until that target passes the gate.
 
 ```sh
 make verify
+make package
 ```
+
+These are the owner commands used by GitHub Actions. `make verify` fails closed when the declared
+Node, pnpm, lock, or materialized Spec bytes differ. `make package` runs that proof and delegates
+release construction to the exact Spec package; rerunning it accepts only byte-identical output.
+The current portable packager covers Kit and Contract. Other component kinds remain unavailable
+until their Spec-owned packager is connected and proven by a representative repository.
