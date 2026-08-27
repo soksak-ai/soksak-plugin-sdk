@@ -44,7 +44,7 @@ export function packSidecarTarget(input: { root: string; specRoot: string; targe
 }
 
 export function packageSidecarRelease(input: {
-  root: string; specRoot: string; commit: string; artifacts: string; out: string;
+  root: string; specRoot: string; commit: string; artifacts: string; target?: string; out: string;
 }): ComponentPackageResult {
   const root = assertRegularDirectory(input.root, "Sidecar root");
   const artifacts = assertRegularDirectory(input.artifacts, "Sidecar target artifacts");
@@ -56,10 +56,12 @@ export function packageSidecarRelease(input: {
   const validator = materializedSpecScript(input.specRoot, "release-template/sidecar/validate-with-spec.mjs");
   const stage = mkdtempSync(join(parent, `.${basename(input.out)}.sidecar-package-`));
   try {
-    runPackagingCommand(process.execPath, [
+    const buildArgs = [
       builder, "--commit", input.commit, "--tag", `v${identity.version}`,
       "--artifacts", artifacts, "--out", stage,
-    ], root);
+      ...(input.target ? ["--target", input.target] : []),
+    ];
+    runPackagingCommand(process.execPath, buildArgs, root);
     runPackagingCommand(process.execPath, [validator, "--spec-package", input.specRoot, "--release-dir", stage], root);
     const release = JSON.parse(readFileSync(assertRegularFile(join(stage, "release.json"), "Sidecar release"), "utf8"));
     if (release.kind !== "sidecar" || release.id !== identity.id || release.version !== identity.version || !Array.isArray(release.artifacts)) {

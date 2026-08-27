@@ -13,6 +13,9 @@ release, not release identity. Component publication verifies manifests, artifac
 and the `soksak-component-build-receipt-v1` receipt rather than trusting an SDK dependency name.
 An extracted SDK release runs `soksak-sdk prepare` to materialize the exact Spec release pinned by
 `sdk-spec.lock.json`; explicit `--manifest` and `--artifact` inputs use the same validation path.
+For a Sidecar, `pack-target` uses the same Spec target packer as the Actions build job. `package`
+without `--target` requires the publication matrix; `package --target <declared-target>` uses the
+same canonical builder and validator for one local development target.
 
 ## Plugin author API
 

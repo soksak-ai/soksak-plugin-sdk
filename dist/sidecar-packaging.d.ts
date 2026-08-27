@@ -11,5 +11,6 @@ export declare function packageSidecarRelease(input: {
     specRoot: string;
     commit: string;
     artifacts: string;
+    target?: string;
     out: string;
 }): ComponentPackageResult;

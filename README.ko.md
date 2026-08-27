@@ -13,6 +13,9 @@ identity가 아닙니다. Component publication은 SDK dependency 이름이 아�
 conformance, `soksak-component-build-receipt-v1` receipt를 검증합니다.
 압축을 푼 SDK release는 `soksak-sdk prepare`로 `sdk-spec.lock.json`이 고정한 exact Spec release를
 materialize합니다. 명시적인 `--manifest`와 `--artifact`도 같은 검증 경로를 사용합니다.
+Sidecar의 `pack-target`은 Actions build job과 같은 Spec target packer를 사용합니다. `package`에서
+`--target`을 생략하면 publication matrix 전체를 요구하고, `package --target <declared-target>`은
+같은 canonical builder와 validator로 local development target 하나를 만듭니다.
 
 ## Plugin author API
 
