@@ -51,6 +51,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
 
   const verifyWorkflow = read(".github/workflows/verify.yml");
   const releaseWorkflow = read(".github/workflows/release.yml");
+  const makefile = read("Makefile");
   for (const workflow of [verifyWorkflow, releaseWorkflow]) {
     assert.match(workflow, /node-version-file:\s*[.]node-version/);
     assert.match(workflow, /package_json_file:\s*package[.]json/);
@@ -63,5 +64,6 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   assert.match(releaseWorkflow, /run:\s*make verify package\b/);
   assert.match(releaseWorkflow, /[.]dependencies\/soksak-spec\/release-template\/publish-canonical-release[.]mjs/);
   assert.match(releaseWorkflow, /repositories:\s*soksak-sdk/);
-  assert.match(releaseWorkflow, /artifacts\/release[.]json/);
+  assert.match(makefile, /PACKAGE_OUT\s*[?]=\s*[$][(]CURDIR[)]\/artifacts\/[$][(]PACKAGE_VERSION[)]/);
+  assert.match(releaseWorkflow, /artifacts\/[$][(]node -p [^)]+[)]\/release[.]json/);
 });
