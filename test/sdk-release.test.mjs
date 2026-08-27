@@ -24,4 +24,8 @@ test("the SDK packages as one canonical Kit release", (context) => {
   assert.deepEqual({ kind: release.kind, id: release.id, version: release.version }, { kind: "kit", id: "soksak-sdk", version: "0.0.7" });
   assert.equal(release.artifacts[0].target, "any");
   assert.equal(release.artifacts[0].manifest, "kit.json");
+  const entries = run("tar", ["-tzf", join(out, release.artifacts[0].file)]).split("\n");
+  for (const required of ["package/sdk-spec.lock.json", "package/scripts/prepare-spec.mjs"]) {
+    assert.equal(entries.includes(required), true, required);
+  }
 });
