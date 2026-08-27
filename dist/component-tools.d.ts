@@ -62,3 +62,9 @@ export declare function createComponentBuildReceipt(input: {
     tools: Record<string, string>;
 }): ComponentBuildReceipt;
 export declare function writeComponentBuildReceipt(path: string, receipt: ComponentBuildReceipt): void;
+export declare function scaffoldComponent(input: {
+    kind: ComponentKind;
+    id: string;
+    version: string;
+    out: string;
+}): string;

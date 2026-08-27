@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join } from "node:path";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, join } from "node:path";
 
 export const COMPONENT_KINDS = ["plugin", "sidecar", "kit", "contract", "spec"] as const;
 export type ComponentKind = (typeof COMPONENT_KINDS)[number];
@@ -148,4 +148,62 @@ export function writeComponentBuildReceipt(path: string, receipt: ComponentBuild
   const stat = lstatSync(parent);
   if (!stat.isDirectory() || stat.isSymbolicLink() || realpathSync(parent) !== parent) throw new Error("component build receipt parent must be a regular directory");
   writeFileSync(path, `${JSON.stringify(receipt, null, 2)}\n`, { flag: "wx" });
+}
+
+function componentManifest(kind: ComponentKind, id: string, version: string): Record<string, unknown> {
+  if (kind === "plugin") {
+    return {
+      id, name: id.split("-").slice(2).join(" ") || id, version,
+      appVersionRequirement: "0.0.1", description: `${id} Plugin`, entry: "main.js",
+      permissions: [], contributes: {},
+    };
+  }
+  if (kind === "sidecar") {
+    const domain = id.replace(/^soksak-sidecar-/, "");
+    return { id, version, interface: { id: `soksak-spec-sidecar-${domain}`, version: "0.0.1" }, process: `dist/${id}` };
+  }
+  return { id, version };
+}
+
+function write(path: string, value: string | Record<string, unknown> | readonly string[]): void {
+  const body = typeof value === "string" ? value : `${JSON.stringify(value, null, 2)}\n`;
+  writeFileSync(path, body, { flag: "wx" });
+}
+
+export function scaffoldComponent(input: { kind: ComponentKind; id: string; version: string; out: string }): string {
+  if (!COMPONENT_KINDS.includes(input.kind) || !ID.test(input.id) || !VERSION.test(input.version)) throw new Error("scaffold identity is invalid");
+  if (!isAbsolute(input.out) || existsSync(input.out)) throw new Error("scaffold output must be a new absolute directory");
+  const parent = dirname(input.out); const stat = lstatSync(parent);
+  if (!stat.isDirectory() || stat.isSymbolicLink() || realpathSync(parent) !== parent) throw new Error("scaffold parent must be a regular directory");
+  const stage = join(parent, `.${basename(input.out)}.next-${process.pid}`);
+  if (existsSync(stage)) throw new Error("scaffold staging directory already exists");
+  mkdirSync(stage);
+  try {
+    write(join(stage, `${input.kind}.json`), componentManifest(input.kind, input.id, input.version));
+    write(join(stage, "README.md"), `# ${input.id}\n\n${input.kind} component ${input.version}.\n`);
+    write(join(stage, "README.ko.md"), `# ${input.id}\n\n${input.kind} component ${input.version}.\n`);
+    write(join(stage, "Makefile"), "SHELL := /bin/sh\n.PHONY: preflight verify\npreflight:\n\t@soksak-sdk inspect --root \"$(CURDIR)\"\nverify: preflight\n");
+    if (input.kind === "plugin") {
+      mkdirSync(join(stage, "src"));
+      write(join(stage, "src/main.ts"), "import { defineSoksakPlugin } from \"@soksak/soksak-sdk/plugin\";\n\nexport default defineSoksakPlugin({});\n");
+      write(join(stage, ".node-version"), "26.7.0\n");
+      write(join(stage, "package.json"), {
+        name: `@soksak/${input.id}`, version: input.version, private: true,
+        engines: { node: "26.7.0" }, packageManager: "pnpm@11.22.0",
+        devEngines: { runtime: { name: "node", version: "26.7.0", onFail: "error" } },
+        type: "module", scripts: { build: "tsc -p tsconfig.json" },
+        peerDependencies: { "@soksak/soksak-sdk": "0.0.2", "@soksak/soksak-spec": "0.0.36" },
+      });
+      write(join(stage, "pnpm-workspace.yaml"), "engineStrict: true\npmOnFail: error\nverifyDepsBeforeRun: error\n");
+      write(join(stage, "tsconfig.json"), {
+        compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", declaration: true, outDir: "dist", rootDir: "src", strict: true },
+        include: ["src/**/*.ts"],
+      });
+    }
+    renameSync(stage, input.out);
+    return input.out;
+  } catch (error) {
+    rmSync(stage, { recursive: true, force: true });
+    throw error;
+  }
 }

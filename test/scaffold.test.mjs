@@ -14,7 +14,7 @@ test("scaffold creates each component kind without inventing a backend implement
   const temporary = mkdtempSync(join(realpathSync(tmpdir()), "soksak-sdk-scaffold-"));
   context.after(() => rmSync(temporary, { recursive: true, force: true }));
   for (const kind of ["plugin", "sidecar", "kit", "contract", "spec"]) {
-    const id = `soksak-${kind}-example`; const out = join(temporary, kind);
+    const id = `soksak-${kind}-example`; const out = join(temporary, id);
     const result = run(["scaffold", "--kind", kind, "--id", id, "--version", "1.2.3", "--out", out]);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(readFileSync(join(out, `${kind}.json`), "utf8")).id, id);
