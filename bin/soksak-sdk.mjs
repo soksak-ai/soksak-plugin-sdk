@@ -7,6 +7,7 @@ import {
   createComponentBuildReceipt,
   inspectComponentRoot,
   packageComponent,
+  packagePluginRelease,
   packageSidecarRelease,
   packSidecarTarget,
   scaffoldComponent,
@@ -106,16 +107,21 @@ function scaffold(args) {
 }
 
 function packageRelease(args) {
-  const values = options(args, new Set(["--root", "--spec-root", "--commit", "--artifacts", "--out"]));
+  const values = options(args, new Set(["--root", "--spec-root", "--commit", "--artifacts", "--store", "--out"]));
   required(values, ["--root", "--spec-root", "--commit", "--out"]);
   try {
     const inspected = inspectComponentRoot(values.get("--root"));
     const common = { root: values.get("--root"), specRoot: values.get("--spec-root"), commit: values.get("--commit"), out: values.get("--out") };
     if (inspected.kind === "sidecar") {
       required(values, ["--artifacts"]);
+      if (values.has("--store")) fail("SDK_USAGE", "--store is only valid for a Plugin", 2);
       process.stdout.write(`${JSON.stringify(packageSidecarRelease({ ...common, artifacts: values.get("--artifacts") }))}\n`);
+    } else if (inspected.kind === "plugin") {
+      if (values.has("--artifacts")) fail("SDK_USAGE", "--artifacts is only valid for a Sidecar", 2);
+      process.stdout.write(`${JSON.stringify(packagePluginRelease({ ...common, store: values.get("--store") }))}\n`);
     } else {
       if (values.has("--artifacts")) fail("SDK_USAGE", "--artifacts is only valid for a Sidecar", 2);
+      if (values.has("--store")) fail("SDK_USAGE", "--store is only valid for a Plugin", 2);
       process.stdout.write(`${JSON.stringify(packageComponent(common))}\n`);
     }
   } catch (error) { fail("SDK_PACKAGE_FAILED", error instanceof Error ? error.message : String(error)); }

@@ -1,4 +1,5 @@
 export { packageComponent, type ComponentPackageResult } from "./component-packaging.js";
+export { packagePluginRelease } from "./plugin-packaging.js";
 export { packageSidecarRelease, packSidecarTarget } from "./sidecar-packaging.js";
 export declare const COMPONENT_KINDS: readonly ["plugin", "sidecar", "kit", "contract", "spec"];
 export type ComponentKind = (typeof COMPONENT_KINDS)[number];

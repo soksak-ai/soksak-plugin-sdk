@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
 export { packageComponent } from "./component-packaging.js";
+export { packagePluginRelease } from "./plugin-packaging.js";
 export { packageSidecarRelease, packSidecarTarget } from "./sidecar-packaging.js";
 export const COMPONENT_KINDS = ["plugin", "sidecar", "kit", "contract", "spec"];
 const ID = /^[a-z0-9][a-z0-9-]{0,127}$/;

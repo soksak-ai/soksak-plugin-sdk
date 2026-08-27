@@ -23,6 +23,17 @@ TypeScript test는 native isolation을 증명하지 않습니다. native conform
 CSP, wrapper, positive/attack probe를 exact artifact digest에 묶습니다. 해당 target이 gate를
 통과하기 전에는 third-party Plugin을 활성화하지 않습니다.
 
+Plugin owner가 `make verify`를 실행한 뒤 SDK는 exact Spec package에 release 생성과 conformance
+validation을 위임합니다.
+
+```sh
+soksak-sdk package --root <absolute-plugin-root> --spec-root <absolute-spec-package> \
+  --commit <exact-git-sha> --out <absolute-release-directory>
+```
+
+runtime dependency가 있는 Plugin은 `--store <absolute-local-release-store>`도 전달합니다. Spec
+composer는 다른 저장소 구현을 읽지 않고 exact release byte를 해석합니다.
+
 ```sh
 make verify
 make package
@@ -33,5 +44,5 @@ materialized Spec byte가 다르면 중단합니다. `make package`는 그 검�
 package에 release 생성을 위임하며, 재실행 시 byte가 완전히 같은 결과만 재사용합니다. 현재
 각 version은 `artifacts/<version>/`을 소유하므로 새 release가 이전 candidate를 삭제하거나
 덮어쓰지 않습니다.
-portable packager는 Kit와 Contract를 지원합니다. 다른 component kind는 대표 저장소에서
-Spec 소유 packager 연결을 증명하기 전까지 사용할 수 없습니다.
+portable packager는 Kit와 Contract를 지원합니다. Plugin과 Sidecar는 각 kind의 Spec packager를
+사용하고, Spec은 자기 release pipeline을 직접 소유합니다.

@@ -23,6 +23,17 @@ TypeScript tests do not prove native isolation. The native conformance gate bind
 CSP, wrapper, and positive/attack probes to exact artifact digests. Third-party Plugins remain
 disabled for a target until that target passes the gate.
 
+After the Plugin owner runs `make verify`, the SDK delegates release construction and conformance
+validation to the exact Spec package:
+
+```sh
+soksak-sdk package --root <absolute-plugin-root> --spec-root <absolute-spec-package> \
+  --commit <exact-git-sha> --out <absolute-release-directory>
+```
+
+A Plugin with runtime dependencies also supplies `--store <absolute-local-release-store>` so the
+Spec composer resolves exact release bytes without reading another repository's implementation.
+
 ```sh
 make verify
 make package
@@ -33,5 +44,5 @@ Node, pnpm, lock, or materialized Spec bytes differ. `make package` runs that pr
 release construction to the exact Spec package; rerunning it accepts only byte-identical output.
 Each version owns `artifacts/<version>/`, so creating a later release never deletes or overwrites an
 earlier candidate.
-The current portable packager covers Kit and Contract. Other component kinds remain unavailable
-until their Spec-owned packager is connected and proven by a representative repository.
+The portable packager covers Kit and Contract. Plugin and Sidecar use their kind-specific Spec
+packagers. Spec remains the owner of its own release pipeline.

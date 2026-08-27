@@ -13,6 +13,8 @@
   "dist/materialized-spec.js",
   "dist/plugin.d.ts",
   "dist/plugin.js",
+  "dist/plugin-packaging.d.ts",
+  "dist/plugin-packaging.js",
   "dist/sidecar-packaging.d.ts",
   "dist/sidecar-packaging.js",
   "kit.json",
