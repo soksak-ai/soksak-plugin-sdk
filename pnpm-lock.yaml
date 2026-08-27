@@ -18,8 +18,6 @@ importers:
         specifier: 4.1.8
         version: 4.1.8(@types/node@26.2.0)
 
-  packages/plugin-api: {}
-
 packages:
 
   '@emnapi/core@1.11.1':
