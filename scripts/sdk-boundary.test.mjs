@@ -10,7 +10,7 @@ const json = (name) => JSON.parse(read(name));
 test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints", () => {
   for (const name of [
     ".node-version", "Makefile", "README.ko.md", "kit.json", "release-files.json",
-    "docs/SIDECAR-AUTHORING.md", "src/plugin.ts", "src/component-tools.ts", "bin/soksak-sdk.mjs", "sdk-spec.lock.json", "tsconfig.json",
+    "docs/SIDECAR-AUTHORING.md", "docs/SIDECAR-AUTHORING.ko.md", "src/plugin.ts", "src/component-tools.ts", "bin/soksak-sdk.mjs", "sdk-spec.lock.json", "tsconfig.json",
   ]) assert.equal(existsSync(join(root, name)), true, name);
   assert.equal(existsSync(join(root, ".nvmrc")), false);
   assert.equal(existsSync(join(root, "packages/plugin-api")), false);
