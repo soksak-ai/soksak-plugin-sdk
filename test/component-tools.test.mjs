@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { afterEach } from "node:test";
@@ -12,7 +12,7 @@ import {
 
 const roots = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
-const temporary = () => { const root = mkdtempSync(join(tmpdir(), "soksak-sdk-tools-")); roots.push(root); return root; };
+const temporary = () => { const root = mkdtempSync(join(realpathSync(tmpdir()), "soksak-sdk-tools-")); roots.push(root); return root; };
 const bytes = (value) => Buffer.from(`${JSON.stringify(value)}\n`);
 
 function release(kind, id = `soksak-${kind}-example`) {

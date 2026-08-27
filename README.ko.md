@@ -1,7 +1,7 @@
 # soksak SDK
 
-Plugin, Sidecar, Kit, Contract, Spec 제작자가 같은 build·검증·패키징 경계를 사용하도록 하는
-공개 author tooling Kit입니다.
+Plugin, Sidecar, Kit, Contract, Spec 제작자에게 각 component 종류에 맞는 build·검증·패키징
+도구를 제공하는 공개 author tooling Kit입니다.
 
 - `@soksak/soksak-sdk/plugin`은 isolated Plugin author API를 제공합니다.
 - `@soksak/soksak-sdk/component-tools`는 5종 component 공통 타입을 제공합니다.

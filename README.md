@@ -1,7 +1,7 @@
 # soksak SDK
 
-Public author-tooling Kit that gives Plugin, Sidecar, Kit, Contract, and Spec repositories one
-build, verification, and packaging boundary.
+Public author-tooling Kit that provides build, verification, and packaging tools for each of the
+Plugin, Sidecar, Kit, Contract, and Spec component kinds.
 
 - `@soksak/soksak-sdk/plugin` is the isolated Plugin author API.
 - `@soksak/soksak-sdk/component-tools` exposes the common five-kind types.
