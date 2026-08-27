@@ -18,3 +18,22 @@ the same contract-neutral runtime boundary. Its API must be derived from a publi
 tested in its own repository, and referenced by release identity. One Sidecar or one domain is not
 evidence for a generic adapter.
 
+## Packaging commands
+
+After the owner repository has run `make verify` and staged a target, `pack-target` delegates the
+target archive to the exact materialized Spec:
+
+```sh
+soksak-sdk pack-target --root <absolute-sidecar-root> --spec-root <absolute-spec-package> \
+  --target <target-triple> --source <absolute-staged-tree> --out <absolute-archive>
+```
+
+After every declared target is present, `package` validates the matrix, builds the release and
+conformance documents, and assembles only the declared publication assets:
+
+```sh
+soksak-sdk package --root <absolute-sidecar-root> --spec-root <absolute-spec-package> \
+  --commit <exact-git-sha> --artifacts <absolute-target-artifacts> --out <absolute-release-directory>
+```
+
+Both commands are idempotent for byte-identical input and refuse conflicting output.

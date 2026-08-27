@@ -3,6 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSyn
 import { basename, dirname, isAbsolute, join } from "node:path";
 
 export { packageComponent, type ComponentPackageResult } from "./component-packaging.js";
+export { packageSidecarRelease, packSidecarTarget } from "./sidecar-packaging.js";
 
 export const COMPONENT_KINDS = ["plugin", "sidecar", "kit", "contract", "spec"] as const;
 export type ComponentKind = (typeof COMPONENT_KINDS)[number];

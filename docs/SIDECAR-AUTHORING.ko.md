@@ -18,3 +18,22 @@ language adapter를 별도 Kit로 만듭니다. API는 공개 Spec 또는 Contra
 자기 저장소에서 검증하고 release identity로 참조해야 합니다. 하나의 Sidecar나 하나의 domain은
 generic adapter의 근거가 아닙니다.
 
+## Packaging command
+
+Owner 저장소가 `make verify`를 실행하고 target을 stage한 뒤 `pack-target`은 exact materialized
+Spec에 target archive 생성을 위임합니다.
+
+```sh
+soksak-sdk pack-target --root <absolute-sidecar-root> --spec-root <absolute-spec-package> \
+  --target <target-triple> --source <absolute-staged-tree> --out <absolute-archive>
+```
+
+선언된 모든 target이 준비되면 `package`가 matrix를 검증하고 release·conformance document를
+만든 뒤 선언된 publication asset만 조립합니다.
+
+```sh
+soksak-sdk package --root <absolute-sidecar-root> --spec-root <absolute-spec-package> \
+  --commit <exact-git-sha> --artifacts <absolute-target-artifacts> --out <absolute-release-directory>
+```
+
+두 command 모두 byte가 같은 입력에는 멱등하며 충돌하는 출력을 거부합니다.

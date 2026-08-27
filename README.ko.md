@@ -5,7 +5,7 @@ Plugin, Sidecar, Kit, Contract, Spec 제작자에게 각 component 종류에 맞
 
 - `@soksak/soksak-sdk/plugin`은 isolated Plugin author API를 제공합니다.
 - `@soksak/soksak-sdk/component-tools`는 5종 component 공통 타입을 제공합니다.
-- `soksak-sdk` CLI는 inspect, verify, receipt, scaffold, package command를 제공합니다.
+- `soksak-sdk` CLI는 inspect, verify, receipt, scaffold, pack-target, package command를 제공합니다.
 - [Sidecar authoring 소유권](docs/SIDECAR-AUTHORING.ko.md)은 runtime API를 Contract와 domain Kit에 둡니다.
 
 규칙과 wire는 soksak-spec이 소유합니다. SDK는 exact Spec release를 소비하는 구현이며 release

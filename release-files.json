@@ -9,8 +9,12 @@
   "dist/component-packaging.js",
   "dist/component-tools.d.ts",
   "dist/component-tools.js",
+  "dist/materialized-spec.d.ts",
+  "dist/materialized-spec.js",
   "dist/plugin.d.ts",
   "dist/plugin.js",
+  "dist/sidecar-packaging.d.ts",
+  "dist/sidecar-packaging.js",
   "kit.json",
   "package.json"
 ]

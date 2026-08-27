@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, realpathSync, renameSync, rmdirSync, rmSync, } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
+import { materializedSpecScript } from "./materialized-spec.js";
 const COMMIT = /^[a-f0-9]{40}$/;
-const SHA256 = /^[a-f0-9]{64}$/;
-function regularDirectory(path, label) {
+export function assertRegularDirectory(path, label) {
     if (!isAbsolute(path) || !existsSync(path))
         throw new Error(`${label} must be an absolute directory`);
     const stat = lstatSync(path);
@@ -12,13 +12,13 @@ function regularDirectory(path, label) {
         throw new Error(`${label} must be a regular directory`);
     return path;
 }
-function regularFile(path, label) {
+export function assertRegularFile(path, label) {
     const stat = lstatSync(path);
     if (!stat.isFile() || stat.isSymbolicLink() || realpathSync(path) !== path)
         throw new Error(`${label} must be a regular file`);
     return path;
 }
-function run(command, args, cwd) {
+export function runPackagingCommand(command, args, cwd) {
     const result = spawnSync(command, args, { cwd, encoding: "utf8" });
     if (result.error)
         throw result.error;
@@ -26,30 +26,22 @@ function run(command, args, cwd) {
         throw new Error(`${command} ${args.join(" ")} failed\n${result.stdout}${result.stderr}`);
     return result.stdout.trim();
 }
-function verifySource(root, commit) {
-    if (!COMMIT.test(commit))
+export function assertCleanSourceCheckout(root, commit) {
+    if (commit !== undefined && !COMMIT.test(commit))
         throw new Error("package commit must be an exact lowercase Git SHA");
     let head;
     try {
-        head = run("git", ["rev-parse", "--verify", "HEAD"], root);
+        head = runPackagingCommand("git", ["rev-parse", "--verify", "HEAD"], root);
     }
     catch {
         throw new Error("release packaging requires a Git source checkout");
     }
-    if (head !== commit)
+    if (commit !== undefined && head !== commit)
         throw new Error("package commit does not equal source HEAD");
-    if (run("git", ["status", "--porcelain=v1", "--untracked-files=all"], root) !== "") {
+    if (runPackagingCommand("git", ["status", "--porcelain=v1", "--untracked-files=all"], root) !== "") {
         throw new Error("release packaging requires a clean source checkout");
     }
-}
-function verifySpec(specRoot) {
-    const pkg = JSON.parse(readFileSync(regularFile(join(specRoot, "package.json"), "Spec package manifest"), "utf8"));
-    const marker = JSON.parse(readFileSync(regularFile(join(specRoot, ".soksak-dependency.json"), "Spec release marker"), "utf8"));
-    if (pkg.name !== "@soksak/soksak-spec" || typeof pkg.version !== "string" ||
-        marker?.release?.kind !== "spec" || marker.release.id !== "soksak-spec" || marker.release.version !== pkg.version ||
-        !SHA256.test(marker.release.sha256) || !SHA256.test(marker.artifactSha256) || !COMMIT.test(marker.sourceCommit))
-        throw new Error("materialized Spec release identity is invalid");
-    return regularFile(join(specRoot, "release-template/build-portable-release.mjs"), "Spec package builder");
+    return head;
 }
 function inventory(root, at = root, prefix = "", files = new Map()) {
     for (const entry of readdirSync(at, { withFileTypes: true })) {
@@ -76,33 +68,35 @@ function sameInventory(left, right) {
             return false;
     return true;
 }
+export function finalizePackageOutput(stage, out) {
+    const release = JSON.parse(readFileSync(assertRegularFile(join(stage, "release.json"), "generated release"), "utf8"));
+    if (existsSync(out)) {
+        assertRegularDirectory(out, "package output");
+        const current = inventory(out);
+        const generated = inventory(stage);
+        if (current.size === 0) {
+            rmdirSync(out);
+            renameSync(stage, out);
+            return { state: "created", out, release: { kind: release.kind, id: release.id, version: release.version } };
+        }
+        if (!sameInventory(current, generated))
+            throw new Error("package output differs from the canonical release");
+        return { state: "unchanged", out, release: { kind: release.kind, id: release.id, version: release.version } };
+    }
+    renameSync(stage, out);
+    return { state: "created", out, release: { kind: release.kind, id: release.id, version: release.version } };
+}
 export function packageComponent(input) {
-    const root = regularDirectory(input.root, "component root");
-    const specRoot = regularDirectory(input.specRoot, "Spec root");
+    const root = assertRegularDirectory(input.root, "component root");
     if (!isAbsolute(input.out))
         throw new Error("package output must be absolute");
-    const parent = regularDirectory(dirname(input.out), "package output parent");
-    verifySource(root, input.commit);
-    const builder = verifySpec(specRoot);
+    const parent = assertRegularDirectory(dirname(input.out), "package output parent");
+    assertCleanSourceCheckout(root, input.commit);
+    const builder = materializedSpecScript(input.specRoot, "release-template/build-portable-release.mjs");
     const stage = mkdtempSync(join(parent, `.${basename(input.out)}.package-`));
     try {
-        run(process.execPath, [builder, "--commit", input.commit, "--out", stage], root);
-        const release = JSON.parse(readFileSync(regularFile(join(stage, "release.json"), "generated release"), "utf8"));
-        if (existsSync(input.out)) {
-            regularDirectory(input.out, "package output");
-            const current = inventory(input.out);
-            const generated = inventory(stage);
-            if (current.size === 0) {
-                rmdirSync(input.out);
-                renameSync(stage, input.out);
-                return { state: "created", out: input.out, release: { kind: release.kind, id: release.id, version: release.version } };
-            }
-            if (!sameInventory(current, generated))
-                throw new Error("package output differs from the canonical release");
-            return { state: "unchanged", out: input.out, release: { kind: release.kind, id: release.id, version: release.version } };
-        }
-        renameSync(stage, input.out);
-        return { state: "created", out: input.out, release: { kind: release.kind, id: release.id, version: release.version } };
+        runPackagingCommand(process.execPath, [builder, "--commit", input.commit, "--out", stage], root);
+        return finalizePackageOutput(stage, input.out);
     }
     finally {
         if (existsSync(stage))

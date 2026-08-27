@@ -7,11 +7,13 @@ import {
   createComponentBuildReceipt,
   inspectComponentRoot,
   packageComponent,
+  packageSidecarRelease,
+  packSidecarTarget,
   scaffoldComponent,
   writeComponentBuildReceipt,
 } from "../dist/component-tools.js";
 
-const usage = "soksak-sdk <inspect|verify|receipt|scaffold|package> [named options]";
+const usage = "soksak-sdk <inspect|verify|receipt|scaffold|pack-target|package> [named options]";
 
 function fail(code, message, status = 1) {
   process.stderr.write(`${code}: ${message}\n`);
@@ -104,14 +106,30 @@ function scaffold(args) {
 }
 
 function packageRelease(args) {
-  const values = options(args, new Set(["--root", "--spec-root", "--commit", "--out"]));
+  const values = options(args, new Set(["--root", "--spec-root", "--commit", "--artifacts", "--out"]));
   required(values, ["--root", "--spec-root", "--commit", "--out"]);
   try {
-    process.stdout.write(`${JSON.stringify(packageComponent({
-      root: values.get("--root"), specRoot: values.get("--spec-root"),
-      commit: values.get("--commit"), out: values.get("--out"),
-    }))}\n`);
+    const inspected = inspectComponentRoot(values.get("--root"));
+    const common = { root: values.get("--root"), specRoot: values.get("--spec-root"), commit: values.get("--commit"), out: values.get("--out") };
+    if (inspected.kind === "sidecar") {
+      required(values, ["--artifacts"]);
+      process.stdout.write(`${JSON.stringify(packageSidecarRelease({ ...common, artifacts: values.get("--artifacts") }))}\n`);
+    } else {
+      if (values.has("--artifacts")) fail("SDK_USAGE", "--artifacts is only valid for a Sidecar", 2);
+      process.stdout.write(`${JSON.stringify(packageComponent(common))}\n`);
+    }
   } catch (error) { fail("SDK_PACKAGE_FAILED", error instanceof Error ? error.message : String(error)); }
+}
+
+function packTarget(args) {
+  const values = options(args, new Set(["--root", "--spec-root", "--target", "--source", "--out"]));
+  required(values, ["--root", "--spec-root", "--target", "--source", "--out"]);
+  try {
+    process.stdout.write(`${JSON.stringify(packSidecarTarget({
+      root: values.get("--root"), specRoot: values.get("--spec-root"), target: values.get("--target"),
+      source: values.get("--source"), out: values.get("--out"),
+    }))}\n`);
+  } catch (error) { fail("SDK_TARGET_PACKAGE_FAILED", error instanceof Error ? error.message : String(error)); }
 }
 
 const [command, ...args] = process.argv.slice(2);
@@ -120,5 +138,6 @@ if (command === "inspect") inspect(args);
 else if (command === "receipt") receipt(args);
 else if (command === "verify") verify(args);
 else if (command === "scaffold") scaffold(args);
+else if (command === "pack-target") packTarget(args);
 else if (command === "package") packageRelease(args);
 else fail("SDK_COMMAND_REQUIRED", usage, 2);
