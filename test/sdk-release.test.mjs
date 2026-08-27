@@ -21,7 +21,7 @@ test("the SDK packages as one canonical Kit release", (context) => {
   run(process.execPath, [join(spec, "release-template/build-portable-release.mjs"), "--commit", commit, "--out", out]);
   run(process.execPath, [join(spec, "bin/validate.mjs"), "release", join(out, "release.json")]);
   const release = JSON.parse(readFileSync(join(out, "release.json"), "utf8"));
-  assert.deepEqual({ kind: release.kind, id: release.id, version: release.version }, { kind: "kit", id: "soksak-sdk", version: "0.0.7" });
+  assert.deepEqual({ kind: release.kind, id: release.id, version: release.version }, { kind: "kit", id: "soksak-sdk", version: "0.0.8" });
   assert.equal(release.artifacts[0].target, "any");
   assert.equal(release.artifacts[0].manifest, "kit.json");
   const entries = run("tar", ["-tzf", join(out, release.artifacts[0].file)]).split("\n");
