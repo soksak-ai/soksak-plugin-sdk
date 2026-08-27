@@ -3,6 +3,8 @@
   "README.ko.md",
   "README.md",
   "bin/soksak-sdk.mjs",
+  "dist/component-packaging.d.ts",
+  "dist/component-packaging.js",
   "dist/component-tools.d.ts",
   "dist/component-tools.js",
   "dist/plugin.d.ts",

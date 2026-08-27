@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
 
+export { packageComponent, type ComponentPackageResult } from "./component-packaging.js";
+
 export const COMPONENT_KINDS = ["plugin", "sidecar", "kit", "contract", "spec"] as const;
 export type ComponentKind = (typeof COMPONENT_KINDS)[number];
 

@@ -1,3 +1,4 @@
+export { packageComponent, type ComponentPackageResult } from "./component-packaging.js";
 export declare const COMPONENT_KINDS: readonly ["plugin", "sidecar", "kit", "contract", "spec"];
 export type ComponentKind = (typeof COMPONENT_KINDS)[number];
 export interface ComponentToolingIdentity {

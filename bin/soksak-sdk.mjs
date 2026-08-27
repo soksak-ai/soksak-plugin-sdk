@@ -6,6 +6,7 @@ import { isAbsolute } from "node:path";
 import {
   createComponentBuildReceipt,
   inspectComponentRoot,
+  packageComponent,
   scaffoldComponent,
   writeComponentBuildReceipt,
 } from "../dist/component-tools.js";
@@ -102,11 +103,22 @@ function scaffold(args) {
   } catch (error) { fail("SDK_SCAFFOLD_FAILED", error instanceof Error ? error.message : String(error)); }
 }
 
+function packageRelease(args) {
+  const values = options(args, new Set(["--root", "--spec-root", "--commit", "--out"]));
+  required(values, ["--root", "--spec-root", "--commit", "--out"]);
+  try {
+    process.stdout.write(`${JSON.stringify(packageComponent({
+      root: values.get("--root"), specRoot: values.get("--spec-root"),
+      commit: values.get("--commit"), out: values.get("--out"),
+    }))}\n`);
+  } catch (error) { fail("SDK_PACKAGE_FAILED", error instanceof Error ? error.message : String(error)); }
+}
+
 const [command, ...args] = process.argv.slice(2);
 if (command === "--help" || command === "help") { process.stdout.write(`${usage}\n`); process.exit(0); }
 if (command === "inspect") inspect(args);
 else if (command === "receipt") receipt(args);
 else if (command === "verify") verify(args);
 else if (command === "scaffold") scaffold(args);
-else if (command === "package") fail("SDK_COMMAND_UNAVAILABLE", `${command} is not implemented`);
+else if (command === "package") packageRelease(args);
 else fail("SDK_COMMAND_REQUIRED", usage, 2);
