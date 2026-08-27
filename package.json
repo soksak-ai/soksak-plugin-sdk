@@ -36,7 +36,7 @@
     "soksak-sdk": "bin/soksak-sdk.mjs"
   },
   "peerDependencies": {
-    "@soksak/soksak-spec": "0.0.41"
+    "@soksak/soksak-spec": "0.0.42"
   },
   "scripts": {
     "dependencies:prepare": "node scripts/prepare-spec.mjs",
