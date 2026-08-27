@@ -13,6 +13,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
     "src/plugin.ts", "src/component-tools.ts", "bin/soksak-sdk.mjs", "sdk-spec.lock.json", "tsconfig.json",
   ]) assert.equal(existsSync(join(root, name)), true, name);
   assert.equal(existsSync(join(root, ".nvmrc")), false);
+  assert.equal(existsSync(join(root, "packages/plugin-api")), false);
   for (const legacy of ["platform-dependencies.json", "soksak-spec-release.lock.json", "scripts/prepare-spec.test.mjs"]) {
     assert.equal(existsSync(join(root, legacy)), false, legacy);
   }
@@ -34,6 +35,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   assert.deepEqual(json("kit.json"), { id: "soksak-sdk", version: "0.0.2" });
 
   const workspace = read("pnpm-workspace.yaml");
+  assert.match(workspace, /^packages:\n  - "[.]"$/m);
   for (const rule of ["engineStrict: true", "pmOnFail: error", "verifyDepsBeforeRun: error", "symlink: false"]) {
     assert.match(workspace, new RegExp(`^${rule}$`, "m"));
   }
