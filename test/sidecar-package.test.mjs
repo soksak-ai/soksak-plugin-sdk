@@ -29,7 +29,10 @@ test("Sidecar tooling packs one native target and assembles one idempotent matri
     process: "dist/soksak-sidecar-example",
   };
   json(join(source, "sidecar.json"), manifest);
-  json(join(source, "release/targets.json"), [{ target: "aarch64-apple-darwin", runner: "macos-15" }]);
+  json(join(source, "release/targets.json"), [
+    { target: "aarch64-apple-darwin", runner: "macos-15" },
+    { target: "x86_64-unknown-linux-gnu", runner: "ubuntu-24.04" },
+  ]);
   writeFileSync(join(source, "Cargo.toml"), '[package]\nname = "soksak-sidecar-example"\nversion = "1.2.3"\npublish = false\n');
   json(join(staged, "sidecar.json"), manifest);
   const binary = Buffer.alloc(32); binary.writeUInt32LE(0xfeedfacf, 0); binary.writeUInt32LE(0x0100000c, 4);
@@ -45,7 +48,10 @@ test("Sidecar tooling packs one native target and assembles one idempotent matri
   const secondTarget = run(targetArgs); assert.equal(secondTarget.status, 0, secondTarget.stderr);
   assert.equal(JSON.parse(firstTarget.stdout).sha256, JSON.parse(secondTarget.stdout).sha256);
 
-  const releaseArgs = ["package", "--root", source, "--spec-root", specRoot, "--commit", commit, "--artifacts", artifacts, "--out", out];
+  const releaseArgs = [
+    "package", "--root", source, "--spec-root", specRoot, "--commit", commit,
+    "--artifacts", artifacts, "--target", "aarch64-apple-darwin", "--out", out,
+  ];
   const first = run(releaseArgs); assert.equal(first.status, 0, first.stderr); assert.equal(JSON.parse(first.stdout).state, "created");
   const second = run(releaseArgs); assert.equal(second.status, 0, second.stderr); assert.equal(JSON.parse(second.stdout).state, "unchanged");
   const release = JSON.parse(readFileSync(join(out, "release.json"), "utf8"));
