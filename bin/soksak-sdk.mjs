@@ -13,8 +13,10 @@ import {
   scaffoldComponent,
   writeComponentBuildReceipt,
 } from "../dist/component-tools.js";
+import { attestComponentRelease } from "../dist/component-attestation.js";
 
-const usage = "soksak-sdk <inspect|verify|receipt|scaffold|pack-target|package> [named options]";
+const usage = "soksak-sdk <inspect|verify|receipt|attest|scaffold|pack-target|package> [named options]";
+const sdkVersion = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 function fail(code, message, status = 1) {
   process.stderr.write(`${code}: ${message}\n`);
@@ -97,6 +99,20 @@ function verify(args) {
   process.stdout.write(`${JSON.stringify({ verified: true, receipt: receiptPath, release: releasePath })}\n`);
 }
 
+function attest(args) {
+  const values = options(args, new Set([
+    "--release-dir", "--spec-root", "--tooling-release", "--mode", "--platform", "--architecture", "--tool",
+  ]), new Set(["--tool"]));
+  required(values, ["--release-dir", "--spec-root", "--tooling-release", "--mode", "--platform", "--architecture", "--tool"]);
+  try {
+    process.stdout.write(`${JSON.stringify(attestComponentRelease({
+      releaseDir: values.get("--release-dir"), specRoot: values.get("--spec-root"), toolingRelease: values.get("--tooling-release"),
+      sdkVersion, execution: { mode: values.get("--mode"), platform: values.get("--platform"), architecture: values.get("--architecture") },
+      tools: toolVersions(values.get("--tool")),
+    }))}\n`);
+  } catch (error) { fail("SDK_ATTESTATION_FAILED", error instanceof Error ? error.message : String(error)); }
+}
+
 function scaffold(args) {
   const values = options(args, new Set(["--kind", "--id", "--version", "--out"]));
   required(values, ["--kind", "--id", "--version", "--out"]);
@@ -143,6 +159,7 @@ if (command === "--help" || command === "help") { process.stdout.write(`${usage}
 if (command === "inspect") inspect(args);
 else if (command === "receipt") receipt(args);
 else if (command === "verify") verify(args);
+else if (command === "attest") attest(args);
 else if (command === "scaffold") scaffold(args);
 else if (command === "pack-target") packTarget(args);
 else if (command === "package") packageRelease(args);

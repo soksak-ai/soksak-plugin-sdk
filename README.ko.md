@@ -5,7 +5,7 @@ Plugin, Sidecar, Kit, Contract, Spec 제작자에게 각 component 종류에 맞
 
 - `@soksak/soksak-sdk/plugin`은 isolated Plugin author API를 제공합니다.
 - `@soksak/soksak-sdk/component-tools`는 5종 component 공통 타입을 제공합니다.
-- `soksak-sdk` CLI는 inspect, verify, receipt, scaffold, pack-target, package command를 제공합니다.
+- `soksak-sdk` CLI는 inspect, verify, receipt, attest, scaffold, pack-target, package command를 제공합니다.
 - [Sidecar authoring 소유권](docs/SIDECAR-AUTHORING.ko.md)은 runtime API를 Contract와 domain Kit에 둡니다.
 
 규칙과 wire는 soksak-spec이 소유합니다. SDK는 exact Spec release를 소비하는 구현이며 release
@@ -46,3 +46,12 @@ package에 release 생성을 위임하며, 재실행 시 byte가 완전히 같�
 덮어쓰지 않습니다.
 portable packager는 Kit와 Contract를 지원합니다. Plugin과 Sidecar는 각 kind의 Spec packager를
 사용하고, Spec은 자기 release pipeline을 직접 소유합니다.
+
+publication 전에 `attest`가 build receipt를 release evidence에 추가하고 materialized Spec으로
+검증합니다. `--tooling-release`는 해당 build를 실행한 SDK의 exact release document입니다.
+
+```sh
+soksak-sdk attest --release-dir <absolute-release-directory> --spec-root <absolute-spec-package> \
+  --tooling-release <absolute-sdk-release.json> --mode <native|container|cross> \
+  --platform <darwin|linux|win32> --architecture <arm64|x64> --tool node=<version>
+```

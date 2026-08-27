@@ -5,7 +5,7 @@ Plugin, Sidecar, Kit, Contract, and Spec component kinds.
 
 - `@soksak/soksak-sdk/plugin` is the isolated Plugin author API.
 - `@soksak/soksak-sdk/component-tools` exposes the common five-kind types.
-- The `soksak-sdk` CLI exposes inspect, verify, receipt, scaffold, pack-target, and package commands.
+- The `soksak-sdk` CLI exposes inspect, verify, receipt, attest, scaffold, pack-target, and package commands.
 - [Sidecar authoring ownership](docs/SIDECAR-AUTHORING.md) keeps runtime APIs in Contracts and domain Kits.
 
 soksak-spec owns rules and wire formats. The SDK is an implementation consuming one exact Spec
@@ -46,3 +46,12 @@ Each version owns `artifacts/<version>/`, so creating a later release never dele
 earlier candidate.
 The portable packager covers Kit and Contract. Plugin and Sidecar use their kind-specific Spec
 packagers. Spec remains the owner of its own release pipeline.
+
+Before publication, `attest` adds the build receipt to the release evidence and verifies it with the
+materialized Spec. `--tooling-release` is the exact release document of the SDK executing the build.
+
+```sh
+soksak-sdk attest --release-dir <absolute-release-directory> --spec-root <absolute-spec-package> \
+  --tooling-release <absolute-sdk-release.json> --mode <native|container|cross> \
+  --platform <darwin|linux|win32> --architecture <arm64|x64> --tool node=<version>
+```

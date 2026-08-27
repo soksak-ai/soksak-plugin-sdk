@@ -5,6 +5,8 @@
   "bin/soksak-sdk.mjs",
   "docs/SIDECAR-AUTHORING.ko.md",
   "docs/SIDECAR-AUTHORING.md",
+  "dist/component-attestation.d.ts",
+  "dist/component-attestation.js",
   "dist/component-packaging.d.ts",
   "dist/component-packaging.js",
   "dist/component-tools.d.ts",
