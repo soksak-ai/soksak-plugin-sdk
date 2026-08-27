@@ -14,8 +14,9 @@ import {
   writeComponentBuildReceipt,
 } from "../dist/component-tools.js";
 import { attestComponentRelease } from "../dist/component-attestation.js";
+import { prepareSpec } from "../scripts/prepare-spec.mjs";
 
-const usage = "soksak-sdk <inspect|verify|receipt|attest|scaffold|pack-target|package> [named options]";
+const usage = "soksak-sdk <prepare|inspect|verify|receipt|attest|scaffold|pack-target|package> [named options]";
 const sdkVersion = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 function fail(code, message, status = 1) {
@@ -64,6 +65,17 @@ function toolVersions(values) {
 function inspect(args) {
   const values = options(args, new Set(["--root"])); required(values, ["--root"]);
   process.stdout.write(`${JSON.stringify(inspectComponentRoot(values.get("--root")))}\n`);
+}
+
+async function prepare(args) {
+  const values = options(args, new Set(["--manifest", "--artifact"]));
+  if (values.size !== 0) required(values, ["--manifest", "--artifact"]);
+  try {
+    const prepared = await prepareSpec(values.size === 0 ? [] : [
+      "--manifest", values.get("--manifest"), "--artifact", values.get("--artifact"),
+    ]);
+    process.stdout.write(`${JSON.stringify(prepared)}\n`);
+  } catch (error) { fail("SDK_PREPARE_FAILED", error instanceof Error ? error.message : String(error)); }
 }
 
 function receipt(args) {
@@ -156,7 +168,8 @@ function packTarget(args) {
 
 const [command, ...args] = process.argv.slice(2);
 if (command === "--help" || command === "help") { process.stdout.write(`${usage}\n`); process.exit(0); }
-if (command === "inspect") inspect(args);
+if (command === "prepare") await prepare(args);
+else if (command === "inspect") inspect(args);
 else if (command === "receipt") receipt(args);
 else if (command === "verify") verify(args);
 else if (command === "attest") attest(args);

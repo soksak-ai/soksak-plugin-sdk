@@ -20,5 +20,7 @@
   "dist/sidecar-packaging.d.ts",
   "dist/sidecar-packaging.js",
   "kit.json",
-  "package.json"
+  "package.json",
+  "scripts/prepare-spec.mjs",
+  "sdk-spec.lock.json"
 ]
