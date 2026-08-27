@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
 
@@ -25,8 +24,16 @@ export interface ReleaseReference {
   kind: "spec" | "kit";
   id: string;
   version: string;
+  target: "any";
+  file: string;
   size: number;
   sha256: string;
+}
+
+export interface ComponentBuildExecution {
+  mode: "native" | "container" | "cross";
+  platform: "darwin" | "linux" | "win32";
+  architecture: "arm64" | "x64";
 }
 
 export interface ComponentBuildReceipt {
@@ -37,9 +44,12 @@ export interface ComponentBuildReceipt {
   spec: ReleaseReference & { kind: "spec" };
   tooling: ReleaseReference & { kind: "kit" };
   command: "make verify";
-  execution: { mode: "native" | "container" | "cross"; platform: "darwin" | "linux" | "win32"; architecture: "arm64" | "x64" };
-  tools: Readonly<Record<string, string>>;
-  artifacts: readonly { target: string; sha256: string }[];
+  artifacts: readonly {
+    target: string;
+    sha256: string;
+    execution: ComponentBuildExecution;
+    tools: Readonly<Record<string, string>>;
+  }[];
 }
 
 const ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
@@ -83,13 +93,18 @@ export function inspectComponentRoot(root: string): InspectedComponent {
 
 function releaseInput(value: { document: Record<string, unknown>; bytes: Uint8Array }, kind: "spec" | "kit", id: string): ReleaseReference {
   const raw = value.document;
-  if (raw.kind !== kind || raw.id !== id || typeof raw.version !== "string" || !VERSION.test(raw.version)) {
+  const artifacts = raw.artifacts;
+  if (raw.kind !== kind || raw.id !== id || typeof raw.version !== "string" || !VERSION.test(raw.version) ||
+      !Array.isArray(artifacts) || artifacts.length !== 1) {
     throw new Error(`${id} release identity is invalid`);
   }
+  const artifact = artifacts[0] as { target?: unknown; file?: unknown; size?: unknown; sha256?: unknown };
+  if (artifact.target !== "any" || typeof artifact.file !== "string" ||
+      typeof artifact.size !== "number" || typeof artifact.sha256 !== "string" || !SHA256.test(artifact.sha256)) {
+    throw new Error(`${id} release artifact is invalid`);
+  }
   return {
-    kind, id, version: raw.version,
-    size: value.bytes.byteLength,
-    sha256: createHash("sha256").update(value.bytes).digest("hex"),
+    kind, id, version: raw.version, target: "any", file: artifact.file, size: artifact.size, sha256: artifact.sha256,
   };
 }
 
@@ -107,7 +122,7 @@ export function createComponentBuildReceipt(input: {
   release: Record<string, unknown>;
   spec: { document: Record<string, unknown>; bytes: Uint8Array };
   tooling: { document: Record<string, unknown>; bytes: Uint8Array };
-  execution: ComponentBuildReceipt["execution"];
+  execution: ComponentBuildExecution;
   tools: Record<string, string>;
 }): ComponentBuildReceipt {
   const release = input.release;
@@ -127,6 +142,7 @@ export function createComponentBuildReceipt(input: {
     if (typeof item.target !== "string" || typeof item.sha256 !== "string" || !SHA256.test(item.sha256)) throw new Error("component release artifact is invalid");
     return { target: item.target, sha256: item.sha256 };
   });
+  if (artifacts.length !== 1) throw new Error("multi-target releases require artifact-specific execution evidence");
   const execution = input.execution;
   if (!(["native", "container", "cross"] as const).includes(execution.mode) ||
       !(["darwin", "linux", "win32"] as const).includes(execution.platform) ||
@@ -139,9 +155,9 @@ export function createComponentBuildReceipt(input: {
     spec: releaseInput(input.spec, "spec", "soksak-spec") as ComponentBuildReceipt["spec"],
     tooling: releaseInput(input.tooling, "kit", "soksak-sdk") as ComponentBuildReceipt["tooling"],
     command: "make verify",
-    execution: { ...execution },
-    tools: exactTools(input.tools),
-    artifacts: Object.freeze(artifacts),
+    artifacts: Object.freeze(artifacts.map((artifact) => ({
+      ...artifact, execution: { ...execution }, tools: exactTools(input.tools),
+    }))),
   };
 }
 
@@ -196,7 +212,7 @@ export function scaffoldComponent(input: { kind: ComponentKind; id: string; vers
         engines: { node: "26.7.0" }, packageManager: "pnpm@11.22.0",
         devEngines: { runtime: { name: "node", version: "26.7.0", onFail: "error" } },
         type: "module", scripts: { build: "tsc -p tsconfig.json" },
-        peerDependencies: { "@soksak/soksak-sdk": "0.0.8", "@soksak/soksak-spec": "0.0.37" },
+        peerDependencies: { "@soksak/soksak-sdk": "0.0.8", "@soksak/soksak-spec": "0.0.41" },
       });
       write(join(stage, "pnpm-workspace.yaml"), "engineStrict: true\npmOnFail: error\nverifyDepsBeforeRun: error\n");
       write(join(stage, "tsconfig.json"), {

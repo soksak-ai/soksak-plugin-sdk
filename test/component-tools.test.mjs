@@ -53,8 +53,12 @@ test("receipt binds release, Spec, SDK, environment, and exact tools without an 
   assert.deepEqual(receipt.subject, { kind: "kit", id: "soksak-kit-example", version: "1.2.3" });
   assert.deepEqual(receipt.tooling, {
     kind: "kit", id: "soksak-sdk", version: "0.0.2",
-    size: bytes(sdk).length, sha256: receipt.tooling.sha256,
+    target: "any", file: sdk.artifacts[0].file, size: sdk.artifacts[0].size, sha256: sdk.artifacts[0].sha256,
   });
+  assert.deepEqual(receipt.artifacts[0].execution, { mode: "native", platform: "darwin", architecture: "arm64" });
+  assert.deepEqual(receipt.artifacts[0].tools, { node: "26.7.0", pnpm: "11.22.0" });
+  assert.equal("execution" in receipt, false);
+  assert.equal("tools" in receipt, false);
   assert.equal("sdk" in receipt, false);
 
   const root = temporary(); const out = join(root, "component-build-receipt.json");

@@ -40,7 +40,7 @@ test("attest binds a release to exact Spec, SDK, execution, and tool evidence id
   const second = run(args); assert.equal(second.status, 0, second.stderr); assert.equal(JSON.parse(second.stdout).state, "unchanged");
   const receipt = JSON.parse(readFileSync(join(releaseDir, "component-build-receipt.json"), "utf8"));
   const attached = JSON.parse(readFileSync(join(releaseDir, "release.json"), "utf8"));
-  assert.equal(receipt.spec.version, "0.0.37"); assert.equal(receipt.tooling.version, sdkVersion);
+  assert.equal(receipt.spec.version, "0.0.41"); assert.equal(receipt.tooling.version, sdkVersion);
   assert.equal(attached.evidence.some(({ file }) => file === "component-build-receipt.json"), true);
   writeFileSync(join(releaseDir, "component-build-receipt.json"), "{}\n");
   const tampered = run(args); assert.notEqual(tampered.status, 0); assert.match(tampered.stderr, /receipt.*differs/i);

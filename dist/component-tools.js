@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
 export { packageComponent } from "./component-packaging.js";
@@ -49,13 +48,18 @@ export function inspectComponentRoot(root) {
 }
 function releaseInput(value, kind, id) {
     const raw = value.document;
-    if (raw.kind !== kind || raw.id !== id || typeof raw.version !== "string" || !VERSION.test(raw.version)) {
+    const artifacts = raw.artifacts;
+    if (raw.kind !== kind || raw.id !== id || typeof raw.version !== "string" || !VERSION.test(raw.version) ||
+        !Array.isArray(artifacts) || artifacts.length !== 1) {
         throw new Error(`${id} release identity is invalid`);
     }
+    const artifact = artifacts[0];
+    if (artifact.target !== "any" || typeof artifact.file !== "string" ||
+        typeof artifact.size !== "number" || typeof artifact.sha256 !== "string" || !SHA256.test(artifact.sha256)) {
+        throw new Error(`${id} release artifact is invalid`);
+    }
     return {
-        kind, id, version: raw.version,
-        size: value.bytes.byteLength,
-        sha256: createHash("sha256").update(value.bytes).digest("hex"),
+        kind, id, version: raw.version, target: "any", file: artifact.file, size: artifact.size, sha256: artifact.sha256,
     };
 }
 function exactTools(value) {
@@ -89,6 +93,8 @@ export function createComponentBuildReceipt(input) {
             throw new Error("component release artifact is invalid");
         return { target: item.target, sha256: item.sha256 };
     });
+    if (artifacts.length !== 1)
+        throw new Error("multi-target releases require artifact-specific execution evidence");
     const execution = input.execution;
     if (!["native", "container", "cross"].includes(execution.mode) ||
         !["darwin", "linux", "win32"].includes(execution.platform) ||
@@ -102,9 +108,9 @@ export function createComponentBuildReceipt(input) {
         spec: releaseInput(input.spec, "spec", "soksak-spec"),
         tooling: releaseInput(input.tooling, "kit", "soksak-sdk"),
         command: "make verify",
-        execution: { ...execution },
-        tools: exactTools(input.tools),
-        artifacts: Object.freeze(artifacts),
+        artifacts: Object.freeze(artifacts.map((artifact) => ({
+            ...artifact, execution: { ...execution }, tools: exactTools(input.tools),
+        }))),
     };
 }
 export function writeComponentBuildReceipt(path, receipt) {
@@ -163,7 +169,7 @@ export function scaffoldComponent(input) {
                 engines: { node: "26.7.0" }, packageManager: "pnpm@11.22.0",
                 devEngines: { runtime: { name: "node", version: "26.7.0", onFail: "error" } },
                 type: "module", scripts: { build: "tsc -p tsconfig.json" },
-                peerDependencies: { "@soksak/soksak-sdk": "0.0.8", "@soksak/soksak-spec": "0.0.37" },
+                peerDependencies: { "@soksak/soksak-sdk": "0.0.8", "@soksak/soksak-spec": "0.0.41" },
             });
             write(join(stage, "pnpm-workspace.yaml"), "engineStrict: true\npmOnFail: error\nverifyDepsBeforeRun: error\n");
             write(join(stage, "tsconfig.json"), {

@@ -17,8 +17,15 @@ export interface ReleaseReference {
     kind: "spec" | "kit";
     id: string;
     version: string;
+    target: "any";
+    file: string;
     size: number;
     sha256: string;
+}
+export interface ComponentBuildExecution {
+    mode: "native" | "container" | "cross";
+    platform: "darwin" | "linux" | "win32";
+    architecture: "arm64" | "x64";
 }
 export interface ComponentBuildReceipt {
     schema: "soksak-component-build-receipt-v1";
@@ -39,15 +46,11 @@ export interface ComponentBuildReceipt {
         kind: "kit";
     };
     command: "make verify";
-    execution: {
-        mode: "native" | "container" | "cross";
-        platform: "darwin" | "linux" | "win32";
-        architecture: "arm64" | "x64";
-    };
-    tools: Readonly<Record<string, string>>;
     artifacts: readonly {
         target: string;
         sha256: string;
+        execution: ComponentBuildExecution;
+        tools: Readonly<Record<string, string>>;
     }[];
 }
 export declare function inspectComponentRoot(root: string): InspectedComponent;
@@ -61,7 +64,7 @@ export declare function createComponentBuildReceipt(input: {
         document: Record<string, unknown>;
         bytes: Uint8Array;
     };
-    execution: ComponentBuildReceipt["execution"];
+    execution: ComponentBuildExecution;
     tools: Record<string, string>;
 }): ComponentBuildReceipt;
 export declare function writeComponentBuildReceipt(path: string, receipt: ComponentBuildReceipt): void;

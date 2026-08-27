@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { createComponentBuildReceipt, type ComponentBuildReceipt } from "./component-tools.js";
+import { createComponentBuildReceipt, type ComponentBuildExecution, type ComponentBuildReceipt } from "./component-tools.js";
 import { assertRegularDirectory, assertRegularFile, runPackagingCommand } from "./component-packaging.js";
 import { materializedSpecRelease, materializedSpecScript } from "./materialized-spec.js";
 
@@ -30,7 +30,7 @@ export function attestComponentRelease(input: {
   specRoot: string;
   toolingRelease: string;
   sdkVersion: string;
-  execution: ComponentBuildReceipt["execution"];
+  execution: ComponentBuildExecution;
   tools: Record<string, string>;
 }): ComponentAttestationResult {
   const releaseDir = assertRegularDirectory(input.releaseDir, "release directory");
@@ -84,4 +84,3 @@ export function attestComponentRelease(input: {
     rmSync(receiptNext, { force: true }); rmSync(releaseNext, { force: true });
   }
 }
-

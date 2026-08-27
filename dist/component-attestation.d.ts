@@ -1,4 +1,4 @@
-import { type ComponentBuildReceipt } from "./component-tools.js";
+import { type ComponentBuildExecution, type ComponentBuildReceipt } from "./component-tools.js";
 export interface ComponentAttestationResult {
     state: "created" | "unchanged";
     receipt: string;
@@ -9,6 +9,6 @@ export declare function attestComponentRelease(input: {
     specRoot: string;
     toolingRelease: string;
     sdkVersion: string;
-    execution: ComponentBuildReceipt["execution"];
+    execution: ComponentBuildExecution;
     tools: Record<string, string>;
 }): ComponentAttestationResult;
