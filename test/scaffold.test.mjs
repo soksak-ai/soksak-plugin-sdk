@@ -23,6 +23,13 @@ test("scaffold creates each component kind without inventing a backend implement
     assert.equal(existsSync(join(out, "README.ko.md")), true);
     if (kind === "plugin") {
       assert.match(readFileSync(join(out, "src/main.ts"), "utf8"), /@soksak\/soksak-sdk\/plugin/);
+      const generatedPackage = JSON.parse(readFileSync(join(out, "package.json"), "utf8"));
+      const sdkPackage = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+      const specLock = JSON.parse(readFileSync(join(root, "sdk-spec.lock.json"), "utf8"));
+      assert.deepEqual(generatedPackage.peerDependencies, {
+        "@soksak/soksak-sdk": sdkPackage.version,
+        "@soksak/soksak-spec": specLock.reference.version,
+      });
       const validated = spawnSync(process.execPath, [validator, "plugin", out], { encoding: "utf8" });
       assert.equal(validated.status, 0, validated.stderr);
     } else {
