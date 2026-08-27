@@ -38,6 +38,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   for (const phrase of ["domain Kit", "Contract", "generic Sidecar runtime adapter", "kind tooling"] ) {
     assert.match(sidecarPolicy, new RegExp(phrase, "i"));
   }
+  assert.match(read("bin/soksak-sdk.mjs"), /command === "prepare"/);
   assert.deepEqual(pkg.bin, { "soksak-sdk": "bin/soksak-sdk.mjs" });
   assert.equal(pkg.soksakRelease, undefined);
   assert.deepEqual(json("kit.json"), { id: "soksak-sdk", version: "0.0.7" });
