@@ -42,6 +42,7 @@ test("preparation materializes exact current Spec bytes idempotently without a l
   assert.equal(first.destination, join(value.root, ".dependencies/soksak-spec"));
   assert.deepEqual(second, first);
   assert.equal(JSON.parse(readFileSync(join(first.destination, "package.json"), "utf8")).name, "@soksak/soksak-spec");
+  assert.deepEqual(readFileSync(join(first.destination, ".soksak-release.json")), readFileSync(value.releasePath));
 });
 
 test("preparation rejects artifact drift", async () => {
