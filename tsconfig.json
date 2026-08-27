@@ -4,6 +4,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ES2022", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@soksak/soksak-spec": [".dependencies/soksak-spec/dist/spec.d.ts"]
+    },
     "declaration": true,
     "outDir": "dist",
     "rootDir": "src",

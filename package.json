@@ -35,6 +35,9 @@
   "bin": {
     "soksak-sdk": "bin/soksak-sdk.mjs"
   },
+  "peerDependencies": {
+    "@soksak/soksak-spec": "0.0.36"
+  },
   "scripts": {
     "dependencies:prepare": "node scripts/prepare-spec.mjs",
     "build": "tsc -p tsconfig.json",
