@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import test, { afterEach } from "node:test";
 
-import { prepareSpecDependency } from "../scripts/prepare-spec.mjs";
+import { prepareSpecDependency, readPreparedSpecDependency } from "../scripts/prepare-spec.mjs";
 
 const roots = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
@@ -47,4 +47,12 @@ test("preparation materializes exact current Spec bytes idempotently without a l
 test("preparation rejects artifact drift", async () => {
   const value = fixture(); writeFileSync(value.artifactPath, "changed");
   await assert.rejects(() => prepareSpecDependency({ root: value.root, lock: value.lockPath, manifest: value.releasePath, artifact: value.artifactPath }), /artifact SHA-256/);
+});
+
+test("preparation reuses only a lock-matched and byte-exact materialized Spec tree", async () => {
+  const value = fixture();
+  const prepared = await prepareSpecDependency({ root: value.root, lock: value.lockPath, manifest: value.releasePath, artifact: value.artifactPath });
+  assert.deepEqual(readPreparedSpecDependency({ root: value.root, lock: value.lockPath }), prepared);
+  writeFileSync(join(prepared.destination, "package.json"), JSON.stringify({ name: "@soksak/soksak-spec", version: "0.0.36", changed: true }));
+  assert.equal(readPreparedSpecDependency({ root: value.root, lock: value.lockPath }), null);
 });
