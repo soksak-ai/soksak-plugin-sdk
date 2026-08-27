@@ -59,7 +59,7 @@ function assertRegularTree(at, prefix = "") {
 
 function regularTreeSha256(at, prefix = "", hash = createHash("sha256")) {
   for (const entry of readdirSync(at, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
-    if (prefix === "" && entry.name === ".soksak-dependency.json") continue;
+    if (prefix === "" && (entry.name === ".soksak-dependency.json" || entry.name === ".soksak-release.json")) continue;
     const path = join(at, entry.name); const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
     const stat = lstatSync(path);
     if (stat.isSymbolicLink()) throw new Error(`symbolic link in Spec package: ${relative}`);
@@ -131,12 +131,13 @@ function markerFor(resolved, treeSha256) {
   };
 }
 
-function sameMarker(destination, marker) {
+function sameMarker(destination, marker, releaseBytes) {
   const path = join(destination, ".soksak-dependency.json");
   if (!existsSync(path)) return false;
   try {
     return JSON.stringify(JSON.parse(regularFile(path, "Spec dependency marker"))) === JSON.stringify(marker) &&
-      regularTreeSha256(destination) === marker.treeSha256;
+      regularTreeSha256(destination) === marker.treeSha256 &&
+      regularFile(join(destination, ".soksak-release.json"), "Spec release document").equals(releaseBytes);
   }
   catch { return false; }
 }
@@ -144,7 +145,8 @@ function sameMarker(destination, marker) {
 export function readPreparedSpecDependency({ root, lock }) {
   try {
     if (!isAbsolute(root) || !existsSync(root) || lstatSync(root).isSymbolicLink() || realpathSync(root) !== root) return null;
-    const reference = parseLockReference(JSON.parse(regularFile(lock, "SDK Spec lock")));
+    const lockValue = JSON.parse(regularFile(lock, "SDK Spec lock"));
+    const reference = parseLockReference(lockValue);
     const destination = join(root, ".dependencies", "soksak-spec");
     if (!existsSync(destination) || lstatSync(destination).isSymbolicLink() || realpathSync(destination) !== destination) return null;
     const marker = JSON.parse(regularFile(join(destination, ".soksak-dependency.json"), "Spec dependency marker"));
@@ -153,6 +155,9 @@ export function readPreparedSpecDependency({ root, lock }) {
         !COMMIT.test(marker.sourceCommit) || !SHA256.test(marker.treeSha256)) return null;
     assertRegularTree(destination);
     if (regularTreeSha256(destination) !== marker.treeSha256) return null;
+    const releaseBytes = regularFile(join(destination, ".soksak-release.json"), "Spec release document");
+    const resolved = parseSpecLock(lockValue, releaseBytes);
+    if (resolved.artifact.sha256 !== marker.artifactSha256 || resolved.source.commit !== marker.sourceCommit) return null;
     const pkg = JSON.parse(regularFile(join(destination, "package.json"), "Spec package manifest"));
     if (pkg.name !== SPEC_PACKAGE || pkg.version !== reference.version) return null;
     return { destination, ...marker };
@@ -182,7 +187,8 @@ export async function prepareSpecDependency({ root, lock, manifest, artifact }) 
     if (pkg.name !== SPEC_PACKAGE || pkg.version !== resolved.reference.version) throw new Error("Spec package identity mismatch");
     run(process.execPath, [join(candidate, "bin/validate.mjs"), "release", manifest], root);
     const marker = markerFor(resolved, regularTreeSha256(candidate));
-    if (existsSync(destination) && sameMarker(destination, marker)) return { destination, ...marker };
+    if (existsSync(destination) && sameMarker(destination, marker, releaseBytes)) return { destination, ...marker };
+    writeFileSync(join(candidate, ".soksak-release.json"), releaseBytes, { flag: "wx" });
     writeFileSync(join(candidate, ".soksak-dependency.json"), `${JSON.stringify(marker, null, 2)}\n`, { flag: "wx" });
     if (existsSync(destination)) {
       const previous = join(dependencies, `.previous-${process.pid}`); renameSync(destination, previous);
