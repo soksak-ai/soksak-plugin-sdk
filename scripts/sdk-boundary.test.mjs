@@ -25,6 +25,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   assert.equal(pkg.packageManager, "pnpm@11.22.0");
   assert.deepEqual(pkg.devEngines, { runtime: { name: "node", version: "26.7.0", onFail: "error" } });
   assert.deepEqual(pkg.exports, {
+    ".": { types: "./dist/component-tools.d.ts", default: "./dist/component-tools.js" },
     "./plugin": { types: "./dist/plugin.d.ts", default: "./dist/plugin.js" },
     "./component-tools": { types: "./dist/component-tools.d.ts", default: "./dist/component-tools.js" },
   });
