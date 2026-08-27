@@ -163,7 +163,7 @@ export function scaffoldComponent(input) {
                 engines: { node: "26.7.0" }, packageManager: "pnpm@11.22.0",
                 devEngines: { runtime: { name: "node", version: "26.7.0", onFail: "error" } },
                 type: "module", scripts: { build: "tsc -p tsconfig.json" },
-                peerDependencies: { "@soksak/soksak-sdk": "0.0.6", "@soksak/soksak-spec": "0.0.37" },
+                peerDependencies: { "@soksak/soksak-sdk": "0.0.7", "@soksak/soksak-spec": "0.0.37" },
             });
             write(join(stage, "pnpm-workspace.yaml"), "engineStrict: true\npmOnFail: error\nverifyDepsBeforeRun: error\n");
             write(join(stage, "tsconfig.json"), {
