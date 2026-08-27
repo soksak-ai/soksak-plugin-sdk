@@ -17,6 +17,10 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   for (const legacy of ["platform-dependencies.json", "soksak-spec-release.lock.json", "scripts/prepare-spec.test.mjs"]) {
     assert.equal(existsSync(join(root, legacy)), false, legacy);
   }
+  for (const legacy of [
+    "scripts/publish-release.mjs", "scripts/release-context.mjs", "scripts/release-verify.mjs",
+    "scripts/github-api.test.mjs", "scripts/publish-assets.test.mjs", "scripts/publish-state.test.mjs",
+  ]) assert.equal(existsSync(join(root, legacy)), false, legacy);
 
   const pkg = json("package.json");
   assert.deepEqual({ name: pkg.name, version: pkg.version, private: pkg.private }, {
@@ -42,4 +46,20 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   for (const name of ["package.json", "README.md", "README.ko.md", "pnpm-workspace.yaml"]) {
     assert.doesNotMatch(read(name), /@soksak-ai/);
   }
+
+  const verifyWorkflow = read(".github/workflows/verify.yml");
+  const releaseWorkflow = read(".github/workflows/release.yml");
+  for (const workflow of [verifyWorkflow, releaseWorkflow]) {
+    assert.match(workflow, /node-version-file:\s*[.]node-version/);
+    assert.match(workflow, /package_json_file:\s*package[.]json/);
+    assert.match(workflow, /run:\s*make verify/);
+    assert.doesNotMatch(workflow, /[.]nvmrc|pnpm install|pnpm test|soksak-plugin-sdk|@soksak-ai/);
+    for (const action of [...workflow.matchAll(/^\s*-?\s*uses:\s*([^\s#]+)/gm)].map((match) => match[1])) {
+      assert.match(action, /^[^@\s]+@[a-f0-9]{40}$/);
+    }
+  }
+  assert.match(releaseWorkflow, /run:\s*make package\b/);
+  assert.match(releaseWorkflow, /[.]dependencies\/soksak-spec\/release-template\/publish-canonical-release[.]mjs/);
+  assert.match(releaseWorkflow, /repositories:\s*soksak-sdk/);
+  assert.match(releaseWorkflow, /artifacts\/release[.]json/);
 });
