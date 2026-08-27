@@ -30,5 +30,7 @@ make package
 GitHub Actions도 위 owner command를 그대로 사용합니다. `make verify`는 선언된 Node, pnpm, lock,
 materialized Spec byte가 다르면 중단합니다. `make package`는 그 검증을 실행한 뒤 exact Spec
 package에 release 생성을 위임하며, 재실행 시 byte가 완전히 같은 결과만 재사용합니다. 현재
+각 version은 `artifacts/<version>/`을 소유하므로 새 release가 이전 candidate를 삭제하거나
+덮어쓰지 않습니다.
 portable packager는 Kit와 Contract를 지원합니다. 다른 component kind는 대표 저장소에서
 Spec 소유 packager 연결을 증명하기 전까지 사용할 수 없습니다.

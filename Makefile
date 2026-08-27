@@ -1,7 +1,8 @@
 SHELL := /bin/sh
 .PHONY: preflight prepare build verify package
 
-PACKAGE_OUT ?= $(CURDIR)/artifacts
+PACKAGE_VERSION := $(shell node -p 'require("./package.json").version')
+PACKAGE_OUT ?= $(CURDIR)/artifacts/$(PACKAGE_VERSION)
 
 preflight:
 	@scripts/check-build-environment.sh

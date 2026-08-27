@@ -65,5 +65,5 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   assert.match(releaseWorkflow, /[.]dependencies\/soksak-spec\/release-template\/publish-canonical-release[.]mjs/);
   assert.match(releaseWorkflow, /repositories:\s*soksak-sdk/);
   assert.match(makefile, /PACKAGE_OUT\s*[?]=\s*[$][(]CURDIR[)]\/artifacts\/[$][(]PACKAGE_VERSION[)]/);
-  assert.match(releaseWorkflow, /artifacts\/[$][(]node -p [^)]+[)]\/release[.]json/);
+  assert.match(releaseWorkflow, /artifacts\/[$][(]node -p .*version.*[)]\/release[.]json/);
 });

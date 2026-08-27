@@ -49,5 +49,5 @@ jobs:
           node .dependencies/soksak-spec/release-template/publish-canonical-release.mjs
           --repository "$GITHUB_REPOSITORY"
           --commit "$GITHUB_SHA"
-          --artifacts "$GITHUB_WORKSPACE/artifacts"
-          --manifest "$GITHUB_WORKSPACE/artifacts/release.json"
+          --artifacts "$GITHUB_WORKSPACE/artifacts/$(node -p 'require(\"./package.json\").version')"
+          --manifest "$GITHUB_WORKSPACE/artifacts/$(node -p 'require(\"./package.json\").version')/release.json"
