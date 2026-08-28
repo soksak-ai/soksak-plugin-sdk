@@ -66,7 +66,7 @@ export function packageSidecarRelease(input) {
             if (realpathSync(destination) !== destination)
                 throw new Error(`Sidecar release file is not regular: ${item.file}`);
         }
-        return finalizePackageOutput(stage, input.out);
+        return finalizePackageOutput(stage, input.out, input.specRoot);
     }
     finally {
         if (existsSync(stage))

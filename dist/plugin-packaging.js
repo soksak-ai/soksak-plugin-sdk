@@ -26,7 +26,7 @@ export function packagePluginRelease(input) {
         runPackagingCommand(process.execPath, [
             validator, "conformance", ...evidence, "--release", release, "--plugin-manifest", join(root, "plugin.json"),
         ], root);
-        return finalizePackageOutput(stage, input.out);
+        return finalizePackageOutput(stage, input.out, input.specRoot);
     }
     finally {
         if (existsSync(stage))
