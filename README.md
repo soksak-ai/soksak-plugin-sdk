@@ -40,11 +40,13 @@ A Plugin with runtime dependencies also supplies `--store <absolute-local-releas
 Spec composer resolves exact release bytes without reading another repository's implementation.
 
 ```sh
-make verify
-make package
+make verify REGISTRY=http://host:port/
+make package REGISTRY=http://host:port/
 ```
 
-These are the owner commands used by GitHub Actions. `make verify` fails closed when the declared
+These are the owner commands used by GitHub Actions. `REGISTRY` is a Make command-line input because
+the SDK consumes one exact `@soksak/soksak-spec`; no ambient registry or cached selection is a build
+input. `make verify` fails closed when the declared
 Node, pnpm, lock, or materialized Spec bytes differ. `make package` runs that proof and delegates
 release construction to the exact Spec package; rerunning it accepts only byte-identical output.
 Each version owns `artifacts/<version>/`, so creating a later release never deletes or overwrites an

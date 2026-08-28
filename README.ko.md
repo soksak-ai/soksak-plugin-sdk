@@ -40,11 +40,13 @@ runtime dependency가 있는 Plugin은 `--store <absolute-local-release-store>`�
 composer는 다른 저장소 구현을 읽지 않고 exact release byte를 해석합니다.
 
 ```sh
-make verify
-make package
+make verify REGISTRY=http://host:port/
+make package REGISTRY=http://host:port/
 ```
 
-GitHub Actions도 위 owner command를 그대로 사용합니다. `make verify`는 선언된 Node, pnpm, lock,
+GitHub Actions도 위 owner command를 그대로 사용합니다. SDK가 정확한
+`@soksak/soksak-spec` 하나를 소비하므로 `REGISTRY`는 Make 명령줄 입력입니다. ambient registry나
+cache 선택은 build input이 아닙니다. `make verify`는 선언된 Node, pnpm, lock,
 materialized Spec byte가 다르면 중단합니다. `make package`는 그 검증을 실행한 뒤 exact Spec
 package에 release 생성을 위임하며, 재실행 시 byte가 완전히 같은 결과만 재사용합니다. 현재
 각 version은 `artifacts/<version>/`을 소유하므로 새 release가 이전 candidate를 삭제하거나
