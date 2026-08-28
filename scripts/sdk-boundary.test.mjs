@@ -10,7 +10,7 @@ const json = (name) => JSON.parse(read(name));
 test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints", () => {
   for (const name of [
     ".node-version", "Makefile", "README.ko.md", "kit.json", "release-files.json",
-    "docs/SIDECAR-AUTHORING.md", "docs/SIDECAR-AUTHORING.ko.md", "src/plugin.ts", "src/component-tools.ts", "bin/soksak-sdk.mjs", "sdk-spec.lock.json", "tsconfig.json",
+    "docs/SIDECAR-AUTHORING.md", "docs/SIDECAR-AUTHORING.ko.md", "src/plugin.ts", "src/component-tools.ts", "bin/soksak-sdk", "sdk-spec.lock.json", "tsconfig.json",
   ]) assert.equal(existsSync(join(root, name)), true, name);
   assert.equal(existsSync(join(root, ".nvmrc")), false);
   assert.equal(existsSync(join(root, "packages/plugin-api")), false);
@@ -39,8 +39,9 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   for (const phrase of ["domain Kit", "Contract", "generic Sidecar runtime adapter", "kind tooling"] ) {
     assert.match(sidecarPolicy, new RegExp(phrase, "i"));
   }
-  assert.match(read("bin/soksak-sdk.mjs"), /command === "prepare"/);
-  assert.deepEqual(pkg.bin, { "soksak-sdk": "bin/soksak-sdk.mjs" });
+  assert.match(read("bin/soksak-sdk"), /command === "prepare"/);
+  assert.deepEqual(pkg.bin, { "soksak-sdk": "bin/soksak-sdk" });
+  assert.equal(existsSync(join(root, "bin/soksak-sdk.mjs")), false);
   assert.equal(pkg.soksakRelease, undefined);
   assert.deepEqual(kit, { id: "soksak-sdk", version: pkg.version });
   const specLock = json("sdk-spec.lock.json").reference;
