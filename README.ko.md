@@ -51,6 +51,19 @@ materialized Spec byte가 다르면 중단합니다. `make package`는 그 검�
 package에 release 생성을 위임하며, 재실행 시 byte가 완전히 같은 결과만 재사용합니다. 현재
 각 version은 `artifacts/<version>/`을 소유하므로 새 release가 이전 candidate를 삭제하거나
 덮어쓰지 않습니다.
+
+그 Spec release가 공개되기 전의 로컬 검증은 SDK source나 lock 형태를 바꾸지 않고 정확한 완성 release
+입력을 전달합니다.
+
+```sh
+make verify REGISTRY=http://host:port/ \
+  SPEC_RELEASE=/absolute/spec-release/release.json \
+  SPEC_ARTIFACT=/absolute/spec-release/soksak-soksak-spec-<version>.tgz
+```
+
+두 입력은 함께 제공해야 하며 절대 경로여야 합니다. 둘 다 생략하면 `sdk-spec.lock.json`이 이름 붙인
+불변 공개 release를 선택하고, 조회 실패에는 local-path fallback이 없습니다.
+
 portable packager는 Kit와 Contract를 지원합니다. Plugin과 Sidecar는 각 kind의 Spec packager를
 사용하고, Spec은 자기 release pipeline을 직접 소유합니다.
 

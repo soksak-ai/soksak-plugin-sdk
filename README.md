@@ -51,6 +51,19 @@ Node, pnpm, lock, or materialized Spec bytes differ. `make package` runs that pr
 release construction to the exact Spec package; rerunning it accepts only byte-identical output.
 Each version owns `artifacts/<version>/`, so creating a later release never deletes or overwrites an
 earlier candidate.
+
+Before that Spec release is public, local verification supplies its exact completed release inputs
+without changing the SDK source or lock shape:
+
+```sh
+make verify REGISTRY=http://host:port/ \
+  SPEC_RELEASE=/absolute/spec-release/release.json \
+  SPEC_ARTIFACT=/absolute/spec-release/soksak-soksak-spec-<version>.tgz
+```
+
+Both inputs are required together and must be absolute. Omitting both selects the immutable public
+release named by `sdk-spec.lock.json`; a failed lookup has no local-path fallback.
+
 The portable packager covers Kit and Contract. Plugin and Sidecar use their kind-specific Spec
 packagers. Spec remains the owner of its own release pipeline.
 
