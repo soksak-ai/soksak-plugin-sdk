@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: guard preflight prepare build verify package
+.PHONY: guard preflight prepare build verify package require-tooling attest
 
 PACKAGE_VERSION := $(shell node -p 'require("./package.json").version')
 PACKAGE_OUT ?= $(CURDIR)/artifacts/$(PACKAGE_VERSION)
@@ -27,3 +27,19 @@ verify: prepare
 
 package: verify
 	@node bin/soksak-sdk.mjs package --root "$(CURDIR)" --spec-root "$(CURDIR)/.dependencies/soksak-spec" --commit "$$(git rev-parse --verify HEAD)" --out "$(PACKAGE_OUT)"
+
+require-tooling:
+	@case "$(origin TOOLING_ROOT)" in "command line") ;; *) echo 'TOOLING_ROOT must be an absolute command-line path to the prior extracted SDK release' >&2; exit 64 ;; esac
+	@case "$(origin TOOLING_RELEASE)" in "command line") ;; *) echo 'TOOLING_RELEASE must be an absolute command-line path to the prior SDK release.json' >&2; exit 64 ;; esac
+	@case "$(TOOLING_ROOT):$(TOOLING_RELEASE)" in /*:/*) ;; *) echo 'TOOLING_ROOT and TOOLING_RELEASE must be absolute paths' >&2; exit 64 ;; esac
+	@test -d "$(TOOLING_ROOT)" && test ! -L "$(TOOLING_ROOT)" && test -f "$(TOOLING_ROOT)/bin/soksak-sdk.mjs" || { echo 'TOOLING_ROOT is not an extracted regular SDK release' >&2; exit 66; }
+	@test -f "$(TOOLING_RELEASE)" && test ! -L "$(TOOLING_RELEASE)" || { echo 'TOOLING_RELEASE is not a regular file' >&2; exit 66; }
+	@test -z "$$(find "$(TOOLING_ROOT)" -type l -print -quit)" || { echo 'TOOLING_ROOT contains a symbolic link' >&2; exit 66; }
+
+attest: require-tooling package
+	@platform="$$(node -p 'process.platform')"; architecture="$$(node -p 'process.arch')"; \
+		node_version="$$(node -p 'process.versions.node')"; pnpm_version="$$(pnpm --version)"; \
+		node "$(TOOLING_ROOT)/bin/soksak-sdk.mjs" attest --release-dir "$(PACKAGE_OUT)" \
+		--spec-root "$(CURDIR)/.dependencies/soksak-spec" --tooling-release "$(TOOLING_RELEASE)" \
+		--mode native --platform "$$platform" --architecture "$$architecture" \
+		--tool "node=$$node_version" --tool "pnpm=$$pnpm_version"
