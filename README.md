@@ -64,6 +64,12 @@ make verify REGISTRY=http://host:port/ \
 Both inputs are required together and must be absolute. Omitting both selects the immutable public
 release named by `sdk-spec.lock.json`; a failed lookup has no local-path fallback.
 
+The login profile selects `soksak-sdk` on `PATH`. `TOOLING_SDK_VERSION` in the Makefile names the
+prior SDK release permitted to attest this SDK version; Make compares both the installed
+`package.json` and `release.json` before attestation. An SDK upgrade installs a new version directory
+and changes the profile selection, while an older release remains reproducible by selecting the
+version it declares.
+
 The portable packager covers Kit and Contract. Plugin and Sidecar use their kind-specific Spec
 packagers. Spec remains the owner of its own release pipeline.
 

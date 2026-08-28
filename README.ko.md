@@ -64,6 +64,11 @@ make verify REGISTRY=http://host:port/ \
 두 입력은 함께 제공해야 하며 절대 경로여야 합니다. 둘 다 생략하면 `sdk-spec.lock.json`이 이름 붙인
 불변 공개 release를 선택하고, 조회 실패에는 local-path fallback이 없습니다.
 
+로그인 프로필이 `PATH`의 `soksak-sdk`를 선택합니다. Makefile의 `TOOLING_SDK_VERSION`은 이 SDK
+version을 attest할 수 있는 직전 SDK release를 이름 붙이며, Make는 attestation 전에 설치된
+`package.json`과 `release.json`을 모두 비교합니다. SDK 업그레이드는 새 version directory를 설치하고
+프로필 선택을 바꾸며, 과거 release는 자신이 선언한 version을 선택하면 다시 만들 수 있습니다.
+
 portable packager는 Kit와 Contract를 지원합니다. Plugin과 Sidecar는 각 kind의 Spec packager를
 사용하고, Spec은 자기 release pipeline을 직접 소유합니다.
 
