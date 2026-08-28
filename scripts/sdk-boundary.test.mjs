@@ -23,8 +23,9 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   ]) assert.equal(existsSync(join(root, legacy)), false, legacy);
 
   const pkg = json("package.json");
+  const kit = json("kit.json");
   assert.deepEqual({ name: pkg.name, version: pkg.version, private: pkg.private }, {
-    name: "@soksak/soksak-sdk", version: "0.0.9", private: true,
+    name: "@soksak/soksak-sdk", version: kit.version, private: true,
   });
   assert.deepEqual(pkg.engines, { node: "26.7.0" });
   assert.equal(pkg.packageManager, "pnpm@11.22.0");
@@ -41,7 +42,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   assert.match(read("bin/soksak-sdk.mjs"), /command === "prepare"/);
   assert.deepEqual(pkg.bin, { "soksak-sdk": "bin/soksak-sdk.mjs" });
   assert.equal(pkg.soksakRelease, undefined);
-  assert.deepEqual(json("kit.json"), { id: "soksak-sdk", version: "0.0.9" });
+  assert.deepEqual(kit, { id: "soksak-sdk", version: pkg.version });
   const specLock = json("sdk-spec.lock.json").reference;
   assert.equal(pkg.peerDependencies?.["@soksak/soksak-spec"], specLock.version);
 

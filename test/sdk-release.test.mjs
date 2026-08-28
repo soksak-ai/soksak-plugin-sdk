@@ -7,6 +7,7 @@ import test from "node:test";
 
 const root = join(import.meta.dirname, "..");
 const spec = join(root, ".dependencies/soksak-spec");
+const version = JSON.parse(readFileSync(join(root, "kit.json"), "utf8")).version;
 
 function run(command, args, cwd = root) {
   const result = spawnSync(command, args, { cwd, encoding: "utf8" });
@@ -21,7 +22,7 @@ test("the SDK packages as one canonical Kit release", (context) => {
   run(process.execPath, [join(spec, "release-template/build-portable-release.mjs"), "--commit", commit, "--out", out]);
   run(process.execPath, [join(spec, "bin/validate.mjs"), "release", join(out, "release.json")]);
   const release = JSON.parse(readFileSync(join(out, "release.json"), "utf8"));
-  assert.deepEqual({ kind: release.kind, id: release.id, version: release.version }, { kind: "kit", id: "soksak-sdk", version: "0.0.9" });
+  assert.deepEqual({ kind: release.kind, id: release.id, version: release.version }, { kind: "kit", id: "soksak-sdk", version });
   assert.equal(release.artifacts[0].target, "any");
   assert.equal(release.artifacts[0].manifest, "kit.json");
   const entries = run("tar", ["-tzf", join(out, release.artifacts[0].file)]).split("\n");
