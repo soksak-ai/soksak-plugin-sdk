@@ -73,4 +73,6 @@ export declare function scaffoldComponent(input: {
     id: string;
     version: string;
     out: string;
+    sdkVersion: string;
+    specVersion: string;
 }): string;

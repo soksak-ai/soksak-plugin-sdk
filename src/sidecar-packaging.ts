@@ -11,13 +11,16 @@ import {
 } from "./component-packaging.js";
 import { materializedSpecScript } from "./materialized-spec.js";
 
-type SidecarManifest = { id: string; version: string; interface: { id: string; version: string }; process: string };
+type SidecarInterface = { id: string; version: string };
+type SidecarManifest = { id: string; version: string; interface: SidecarInterface[]; process: string };
 
 function manifest(path: string): SidecarManifest {
   const value = JSON.parse(readFileSync(assertRegularFile(path, "Sidecar manifest"), "utf8"));
   if (!value || typeof value !== "object" || Array.isArray(value) || typeof value.id !== "string" ||
-      typeof value.version !== "string" || !value.interface || typeof value.interface !== "object" ||
-      typeof value.interface.id !== "string" || typeof value.interface.version !== "string" || typeof value.process !== "string") {
+      typeof value.version !== "string" || !Array.isArray(value.interface) || value.interface.length === 0 ||
+      value.interface.some((entry: unknown) => !entry || typeof entry !== "object" || Array.isArray(entry) ||
+        typeof (entry as SidecarInterface).id !== "string" || typeof (entry as SidecarInterface).version !== "string") ||
+      typeof value.process !== "string") {
     throw new Error("Sidecar manifest identity is invalid");
   }
   return value as SidecarManifest;

@@ -180,7 +180,7 @@ function componentManifest(kind: ComponentKind, id: string, version: string): Re
   }
   if (kind === "sidecar") {
     const domain = id.replace(/^soksak-sidecar-/, "");
-    return { id, version, interface: { id: `soksak-spec-sidecar-${domain}`, version: "0.0.1" }, process: `dist/${id}` };
+    return { id, version, interface: [{ id: `soksak-spec-sidecar-${domain}`, version: "0.0.1" }], process: `dist/${id}` };
   }
   return { id, version };
 }
@@ -190,8 +190,11 @@ function write(path: string, value: string | Record<string, unknown> | readonly 
   writeFileSync(path, body, { flag: "wx" });
 }
 
-export function scaffoldComponent(input: { kind: ComponentKind; id: string; version: string; out: string }): string {
-  if (!COMPONENT_KINDS.includes(input.kind) || !ID.test(input.id) || !VERSION.test(input.version)) throw new Error("scaffold identity is invalid");
+export function scaffoldComponent(input: {
+  kind: ComponentKind; id: string; version: string; out: string; sdkVersion: string; specVersion: string;
+}): string {
+  if (!COMPONENT_KINDS.includes(input.kind) || !ID.test(input.id) || !VERSION.test(input.version) ||
+      !VERSION.test(input.sdkVersion) || !VERSION.test(input.specVersion)) throw new Error("scaffold identity is invalid");
   if (!isAbsolute(input.out) || existsSync(input.out)) throw new Error("scaffold output must be a new absolute directory");
   const parent = dirname(input.out); const stat = lstatSync(parent);
   if (!stat.isDirectory() || stat.isSymbolicLink() || realpathSync(parent) !== parent) throw new Error("scaffold parent must be a regular directory");
@@ -212,7 +215,7 @@ export function scaffoldComponent(input: { kind: ComponentKind; id: string; vers
         engines: { node: "26.7.0" }, packageManager: "pnpm@11.22.0",
         devEngines: { runtime: { name: "node", version: "26.7.0", onFail: "error" } },
         type: "module", scripts: { build: "tsc -p tsconfig.json" },
-        peerDependencies: { "@soksak/soksak-sdk": "0.0.9", "@soksak/soksak-spec": "0.0.42" },
+        peerDependencies: { "@soksak/soksak-sdk": input.sdkVersion, "@soksak/soksak-spec": input.specVersion },
       });
       write(join(stage, "pnpm-workspace.yaml"), "engineStrict: true\npmOnFail: error\nverifyDepsBeforeRun: error\n");
       write(join(stage, "tsconfig.json"), {

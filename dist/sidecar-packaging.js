@@ -5,8 +5,10 @@ import { materializedSpecScript } from "./materialized-spec.js";
 function manifest(path) {
     const value = JSON.parse(readFileSync(assertRegularFile(path, "Sidecar manifest"), "utf8"));
     if (!value || typeof value !== "object" || Array.isArray(value) || typeof value.id !== "string" ||
-        typeof value.version !== "string" || !value.interface || typeof value.interface !== "object" ||
-        typeof value.interface.id !== "string" || typeof value.interface.version !== "string" || typeof value.process !== "string") {
+        typeof value.version !== "string" || !Array.isArray(value.interface) || value.interface.length === 0 ||
+        value.interface.some((entry) => !entry || typeof entry !== "object" || Array.isArray(entry) ||
+            typeof entry.id !== "string" || typeof entry.version !== "string") ||
+        typeof value.process !== "string") {
         throw new Error("Sidecar manifest identity is invalid");
     }
     return value;

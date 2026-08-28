@@ -17,7 +17,9 @@ import { attestComponentRelease } from "../dist/component-attestation.js";
 import { prepareSpec } from "../scripts/prepare-spec.mjs";
 
 const usage = "soksak-sdk <prepare|inspect|verify|receipt|attest|scaffold|pack-target|package> [named options]";
-const sdkVersion = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+const sdkPackage = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+const sdkVersion = sdkPackage.version;
+const specVersion = sdkPackage.peerDependencies?.["@soksak/soksak-spec"];
 
 function fail(code, message, status = 1) {
   process.stderr.write(`${code}: ${message}\n`);
@@ -129,7 +131,10 @@ function scaffold(args) {
   const values = options(args, new Set(["--kind", "--id", "--version", "--out"]));
   required(values, ["--kind", "--id", "--version", "--out"]);
   try {
-    const out = scaffoldComponent({ kind: values.get("--kind"), id: values.get("--id"), version: values.get("--version"), out: values.get("--out") });
+    const out = scaffoldComponent({
+      kind: values.get("--kind"), id: values.get("--id"), version: values.get("--version"), out: values.get("--out"),
+      sdkVersion, specVersion,
+    });
     process.stdout.write(`${JSON.stringify({ scaffolded: true, kind: values.get("--kind"), id: values.get("--id"), version: values.get("--version"), out })}\n`);
   } catch (error) { fail("SDK_SCAFFOLD_FAILED", error instanceof Error ? error.message : String(error)); }
 }
