@@ -2,7 +2,7 @@
   "LICENSE",
   "README.ko.md",
   "README.md",
-  "bin/soksak-sdk.mjs",
+  "bin/soksak-sdk",
   "docs/SIDECAR-AUTHORING.ko.md",
   "docs/SIDECAR-AUTHORING.md",
   "dist/component-attestation.d.ts",

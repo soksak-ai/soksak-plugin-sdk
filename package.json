@@ -33,7 +33,7 @@
     }
   },
   "bin": {
-    "soksak-sdk": "bin/soksak-sdk.mjs"
+    "soksak-sdk": "bin/soksak-sdk"
   },
   "peerDependencies": {
     "@soksak/soksak-spec": "0.0.46"

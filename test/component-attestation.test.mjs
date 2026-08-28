@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const root = join(import.meta.dirname, "..");
-const cli = join(root, "bin/soksak-sdk.mjs");
+const cli = join(root, "bin/soksak-sdk");
 const specRoot = join(root, ".dependencies/soksak-spec");
 const sdkVersion = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
 const specVersion = JSON.parse(readFileSync(join(root, "sdk-spec.lock.json"), "utf8")).reference.version;

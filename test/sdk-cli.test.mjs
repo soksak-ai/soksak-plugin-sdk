@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test, { afterEach } from "node:test";
 import { spawnSync } from "node:child_process";
 
-const cli = join(import.meta.dirname, "../bin/soksak-sdk.mjs");
+const cli = join(import.meta.dirname, "../bin/soksak-sdk");
 const sdkRoot = join(import.meta.dirname, "..");
 const specRoot = join(sdkRoot, ".dependencies/soksak-spec");
 const roots = [];

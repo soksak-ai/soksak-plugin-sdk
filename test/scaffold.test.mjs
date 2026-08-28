@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const root = join(import.meta.dirname, "..");
-const cli = join(root, "bin/soksak-sdk.mjs");
+const cli = join(root, "bin/soksak-sdk");
 const validator = join(root, ".dependencies/soksak-spec/bin/validate.mjs");
 const run = (args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
 
