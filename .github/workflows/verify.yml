@@ -33,4 +33,4 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - name: Verify source, SDK, and exact dependency closure
-        run: make verify
+        run: make verify REGISTRY=https://registry.npmjs.org/

@@ -31,7 +31,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - name: Verify and package with the owner commands
-        run: make verify package
+        run: make verify package REGISTRY=https://registry.npmjs.org/
       - name: Mint a least-privilege installation token
         id: release-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
