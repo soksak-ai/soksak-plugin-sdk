@@ -71,7 +71,10 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   assert.match(releaseWorkflow, /[.]dependencies\/soksak-spec\/release-template\/publish-canonical-release[.]mjs/);
   assert.match(releaseWorkflow, /repositories:\s*soksak-sdk/);
   assert.match(makefile, /PACKAGE_OUT\s*[?]=\s*[$][(]CURDIR[)]\/artifacts\/[$][(]PACKAGE_VERSION[)]/);
-  for (const required of ["guard:", "REGISTRY", "registry_flags", "--@soksak:registry=$(REGISTRY)"]) {
+  for (const required of [
+    "guard:", "REGISTRY", "registry_flags", "--@soksak:registry=$(REGISTRY)",
+    "SPEC_RELEASE", "SPEC_ARTIFACT", "--manifest", "--artifact",
+  ]) {
     assert.ok(makefile.includes(required), `Makefile is missing ${required}`);
   }
   assert.match(releaseWorkflow, /artifacts\/[$][(]node -p .*version.*[)]\/release[.]json/);
