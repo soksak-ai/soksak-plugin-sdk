@@ -1,15 +1,10 @@
-import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
   existsSync,
   lstatSync,
-  mkdirSync,
   mkdtempSync,
   readFileSync,
-  readdirSync,
   realpathSync,
-  renameSync,
-  rmdirSync,
   rmSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
@@ -56,39 +51,14 @@ export function assertCleanSourceCheckout(root: string, commit?: string): string
   return head;
 }
 
-function inventory(root: string, at = root, prefix = "", files = new Map<string, string>()): Map<string, string> {
-  for (const entry of readdirSync(at, { withFileTypes: true })) {
-    const path = join(at, entry.name); const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
-    const stat = lstatSync(path);
-    if (stat.isSymbolicLink()) throw new Error(`package output contains a symbolic link: ${relative}`);
-    if (stat.isDirectory()) inventory(root, path, relative, files);
-    else if (stat.isFile() && realpathSync(path) === path) {
-      files.set(relative, createHash("sha256").update(readFileSync(path)).digest("hex"));
-    } else throw new Error(`package output contains a non-regular entry: ${relative}`);
-  }
-  return files;
-}
-
-function sameInventory(left: Map<string, string>, right: Map<string, string>): boolean {
-  if (left.size !== right.size) return false;
-  for (const [name, digest] of left) if (right.get(name) !== digest) return false;
-  return true;
-}
-
-export function finalizePackageOutput(stage: string, out: string): ComponentPackageResult {
+export function finalizePackageOutput(stage: string, out: string, specRoot: string): ComponentPackageResult {
   const release = JSON.parse(readFileSync(assertRegularFile(join(stage, "release.json"), "generated release"), "utf8"));
-  if (existsSync(out)) {
-    assertRegularDirectory(out, "package output");
-    const current = inventory(out); const generated = inventory(stage);
-    if (current.size === 0) {
-      rmdirSync(out); renameSync(stage, out);
-      return { state: "created", out, release: { kind: release.kind, id: release.id, version: release.version } };
-    }
-    if (!sameInventory(current, generated)) throw new Error("package output differs from the canonical release");
-    return { state: "unchanged", out, release: { kind: release.kind, id: release.id, version: release.version } };
-  }
-  renameSync(stage, out);
-  return { state: "created", out, release: { kind: release.kind, id: release.id, version: release.version } };
+  const publisher = materializedSpecScript(specRoot, "release-template/verified-release-output.mjs");
+  const result = JSON.parse(runPackagingCommand(process.execPath, [
+    publisher, "--candidate", stage, "--output", out,
+  ], dirname(out)));
+  if (result.state !== "created" && result.state !== "unchanged") throw new Error("Spec returned an invalid package output state");
+  return { state: result.state, out, release: { kind: release.kind, id: release.id, version: release.version } };
 }
 
 export function packageComponent(input: { root: string; specRoot: string; commit: string; out: string }): ComponentPackageResult {
@@ -100,7 +70,7 @@ export function packageComponent(input: { root: string; specRoot: string; commit
   const stage = mkdtempSync(join(parent, `.${basename(input.out)}.package-`));
   try {
     runPackagingCommand(process.execPath, [builder, "--commit", input.commit, "--out", stage], root);
-    return finalizePackageOutput(stage, input.out);
+    return finalizePackageOutput(stage, input.out, input.specRoot);
   } finally {
     if (existsSync(stage)) rmSync(stage, { recursive: true, force: true });
   }
