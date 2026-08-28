@@ -29,17 +29,16 @@ package: verify
 	@node bin/soksak-sdk.mjs package --root "$(CURDIR)" --spec-root "$(CURDIR)/.dependencies/soksak-spec" --commit "$$(git rev-parse --verify HEAD)" --out "$(PACKAGE_OUT)"
 
 require-tooling:
-	@case "$(origin TOOLING_ROOT)" in "command line") ;; *) echo 'TOOLING_ROOT must be an absolute command-line path to the prior extracted SDK release' >&2; exit 64 ;; esac
-	@case "$(origin TOOLING_RELEASE)" in "command line") ;; *) echo 'TOOLING_RELEASE must be an absolute command-line path to the prior SDK release.json' >&2; exit 64 ;; esac
-	@case "$(TOOLING_ROOT):$(TOOLING_RELEASE)" in /*:/*) ;; *) echo 'TOOLING_ROOT and TOOLING_RELEASE must be absolute paths' >&2; exit 64 ;; esac
-	@test -d "$(TOOLING_ROOT)" && test ! -L "$(TOOLING_ROOT)" && test -f "$(TOOLING_ROOT)/bin/soksak-sdk.mjs" || { echo 'TOOLING_ROOT is not an extracted regular SDK release' >&2; exit 66; }
-	@test -f "$(TOOLING_RELEASE)" && test ! -L "$(TOOLING_RELEASE)" || { echo 'TOOLING_RELEASE is not a regular file' >&2; exit 66; }
-	@test -z "$$(find "$(TOOLING_ROOT)" -type l -print -quit)" || { echo 'TOOLING_ROOT contains a symbolic link' >&2; exit 66; }
+	@tool="$$(command -v soksak-sdk)" || { echo 'soksak-sdk is not selected by PATH' >&2; exit 78; }; \
+		case "$$tool" in /*) ;; *) echo 'soksak-sdk PATH entry must be absolute' >&2; exit 78 ;; esac; \
+		root="$$(cd "$$(dirname "$$tool")/.." && pwd -P)"; \
+		test -f "$$tool" && test ! -L "$$tool" && test -f "$$root/release.json" && test ! -L "$$root/release.json" || { echo 'soksak-sdk PATH entry has no regular release.json' >&2; exit 78; }
 
 attest: require-tooling package
-	@platform="$$(node -p 'process.platform')"; architecture="$$(node -p 'process.arch')"; \
+	@tool="$$(command -v soksak-sdk)"; tooling_root="$$(cd "$$(dirname "$$tool")/.." && pwd -P)"; \
+		platform="$$(node -p 'process.platform')"; architecture="$$(node -p 'process.arch')"; \
 		node_version="$$(node -p 'process.versions.node')"; pnpm_version="$$(pnpm --version)"; \
-		node "$(TOOLING_ROOT)/bin/soksak-sdk.mjs" attest --release-dir "$(PACKAGE_OUT)" \
-		--spec-root "$(CURDIR)/.dependencies/soksak-spec" --tooling-release "$(TOOLING_RELEASE)" \
+		soksak-sdk attest --release-dir "$(PACKAGE_OUT)" \
+		--spec-root "$(CURDIR)/.dependencies/soksak-spec" --tooling-release "$$tooling_root/release.json" \
 		--mode native --platform "$$platform" --architecture "$$architecture" \
 		--tool "node=$$node_version" --tool "pnpm=$$pnpm_version"
