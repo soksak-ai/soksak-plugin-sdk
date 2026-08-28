@@ -3,6 +3,7 @@ SHELL := /bin/sh
 
 PACKAGE_VERSION := $(shell node -p 'require("./package.json").version')
 PACKAGE_OUT ?= $(CURDIR)/artifacts/$(PACKAGE_VERSION)
+TOOLING_SDK_VERSION := 0.0.11
 registry_flags = --@soksak:registry=$(REGISTRY) --config.minimum-release-age=0
 spec_input_args = $(if $(filter command line,$(origin SPEC_RELEASE)),--manifest "$(SPEC_RELEASE)" --artifact "$(SPEC_ARTIFACT)")
 
@@ -32,7 +33,10 @@ require-tooling:
 	@tool="$$(command -v soksak-sdk)" || { echo 'soksak-sdk is not selected by PATH' >&2; exit 78; }; \
 		case "$$tool" in /*) ;; *) echo 'soksak-sdk PATH entry must be absolute' >&2; exit 78 ;; esac; \
 		root="$$(cd "$$(dirname "$$tool")/.." && pwd -P)"; \
-		test -f "$$tool" && test ! -L "$$tool" && test -f "$$root/release.json" && test ! -L "$$root/release.json" || { echo 'soksak-sdk PATH entry has no regular release.json' >&2; exit 78; }
+		test -f "$$tool" && test ! -L "$$tool" && test -f "$$root/release.json" && test ! -L "$$root/release.json" || { echo 'soksak-sdk PATH entry has no regular release.json' >&2; exit 78; }; \
+		tooling_package_version="$$(node -e 'process.stdout.write(require(process.argv[1]).version)' "$$root/package.json")"; \
+		tooling_release_version="$$(node -e 'process.stdout.write(require(process.argv[1]).version)' "$$root/release.json")"; \
+		test "$$tooling_package_version" = "$(TOOLING_SDK_VERSION)" && test "$$tooling_release_version" = "$(TOOLING_SDK_VERSION)" || { echo "TOOLCHAIN_MISMATCH soksak-sdk required=$(TOOLING_SDK_VERSION) package=$$tooling_package_version release=$$tooling_release_version" >&2; exit 78; }
 
 attest: require-tooling package
 	@tool="$$(command -v soksak-sdk)"; tooling_root="$$(cd "$$(dirname "$$tool")/.." && pwd -P)"; \
