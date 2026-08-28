@@ -25,6 +25,7 @@ test("Sidecar tooling packs one native target and assembles one idempotent matri
   mkdirSync(join(source, "release"), { recursive: true }); mkdirSync(join(staged, "dist"), { recursive: true }); mkdirSync(artifacts);
   const manifest = {
     id: "soksak-sidecar-example", version: "1.2.3",
+    processRole: "sidecar-example",
     interface: [{ id: "soksak-spec-sidecar-example", version: "0.0.2" }],
     process: "dist/soksak-sidecar-example",
   };

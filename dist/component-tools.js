@@ -134,7 +134,10 @@ function componentManifest(kind, id, version) {
     }
     if (kind === "sidecar") {
         const domain = id.replace(/^soksak-sidecar-/, "");
-        return { id, version, interface: [{ id: `soksak-spec-sidecar-${domain}`, version: "0.0.1" }], process: `dist/${id}` };
+        return {
+            id, version, processRole: `sidecar-${domain}`,
+            interface: [{ id: `soksak-spec-sidecar-${domain}`, version: "0.0.1" }], process: `dist/${id}`,
+        };
     }
     return { id, version };
 }
