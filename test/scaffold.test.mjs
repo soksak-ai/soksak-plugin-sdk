@@ -32,6 +32,9 @@ test("scaffold creates each component kind without inventing a backend implement
       });
       const validated = spawnSync(process.execPath, [validator, "plugin", out], { encoding: "utf8" });
       assert.equal(validated.status, 0, validated.stderr);
+    } else if (kind === "sidecar") {
+      const manifest = JSON.parse(readFileSync(join(out, "sidecar.json"), "utf8"));
+      assert.equal(manifest.processRole, "sidecar-example");
     } else {
       assert.equal(existsSync(join(out, "src")), false);
     }
