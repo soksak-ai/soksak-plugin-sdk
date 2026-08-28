@@ -81,6 +81,10 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   for (const required of ["require-tooling:", "attest:", "command -v soksak-sdk", "release.json"]) {
     assert.ok(makefile.includes(required), `SDK attestation boundary is missing ${required}`);
   }
+  assert.match(makefile, /^TOOLING_SDK_VERSION := \d+\.\d+\.\d+$/m);
+  for (const required of ["tooling_package_version", "tooling_release_version", "TOOLING_SDK_VERSION"]) {
+    assert.ok(makefile.includes(required), `SDK tooling version check is missing ${required}`);
+  }
   assert.doesNotMatch(makefile, /TOOLING_ROOT|TOOLING_RELEASE|SDK_ROOT|SDK_RELEASE/);
   assert.match(releaseWorkflow, /artifacts\/[$][(]node -p .*version.*[)]\/release[.]json/);
 });
