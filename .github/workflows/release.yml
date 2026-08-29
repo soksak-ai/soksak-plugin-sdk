@@ -39,7 +39,7 @@ jobs:
           client-id: ${{ vars.SOKSAK_RELEASE_CLIENT_ID }}
           private-key: ${{ secrets.SOKSAK_RELEASE_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: soksak-sdk
+          repositories: soksak-plugin-sdk
           permission-administration: read
           permission-contents: write
       - name: Publish the verified owner manifest and assets

@@ -63,14 +63,14 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
     assert.match(workflow, /node-version-file:\s*[.]node-version/);
     assert.match(workflow, /package_json_file:\s*package[.]json/);
     assert.match(workflow, /run:\s*make verify(?: package)? REGISTRY=https:\/\/registry[.]npmjs[.]org\//);
-    assert.doesNotMatch(workflow, /[.]nvmrc|pnpm install|pnpm test|soksak-plugin-sdk|@soksak-ai/);
+    assert.doesNotMatch(workflow, /[.]nvmrc|pnpm install|pnpm test|@soksak-ai/);
     for (const action of [...workflow.matchAll(/^\s*-?\s*uses:\s*([^\s#]+)/gm)].map((match) => match[1])) {
       assert.match(action, /^[^@\s]+@[a-f0-9]{40}$/);
     }
   }
   assert.match(releaseWorkflow, /run:\s*make verify package\b/);
   assert.match(releaseWorkflow, /[.]dependencies\/soksak-spec\/release-template\/publish-canonical-release[.]mjs/);
-  assert.match(releaseWorkflow, /repositories:\s*soksak-sdk/);
+  assert.match(releaseWorkflow, /repositories:\s*soksak-plugin-sdk/);
   assert.match(makefile, /PACKAGE_OUT\s*[?]=\s*[$][(]CURDIR[)]\/artifacts\/[$][(]PACKAGE_VERSION[)]/);
   for (const required of [
     "guard:", "REGISTRY", "registry_flags", "--@soksak:registry=$(REGISTRY)",
