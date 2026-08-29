@@ -26,7 +26,7 @@ test("Contract tooling packages one portable release without a runtime adapter",
   writeFileSync(join(source, "dist/index.js"), "export const contract = {};\n");
   json(join(source, "contract.json"), { id: "soksak-contract-example", version: "1.2.3" });
   json(join(source, "package.json"), {
-    name: "@soksak/soksak-contract-example", version: "1.2.3", private: true, type: "module",
+    name: "@soksak/soksak-contract-example", version: "1.2.3", private: false, type: "module",
     repository: { type: "git", url: "git+https://github.com/soksak-ai/soksak-contract-example.git" },
     exports: { ".": "./dist/index.js" },
   });

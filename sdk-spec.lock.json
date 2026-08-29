@@ -2,10 +2,10 @@
   "reference": {
     "kind": "spec",
     "id": "soksak-spec",
-    "version": "0.0.51",
+    "version": "0.0.52",
     "target": "any",
-    "file": "soksak-soksak-spec-0.0.51.tgz",
-    "size": 137269,
-    "sha256": "1b5b28952fb5aff831a5b7758c0903174e284b94d82da491bc5a78c8e0bd8fb5"
+    "file": "soksak-soksak-spec-0.0.52.tgz",
+    "size": 137325,
+    "sha256": "2ce449dfaea4fd7f637a71f02383467bd7dd4346fe71f536268f32c0d4d083ac"
   }
 }
