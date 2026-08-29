@@ -35,6 +35,11 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
     "./plugin": { types: "./dist/plugin.d.ts", default: "./dist/plugin.js" },
     "./component-tools": { types: "./dist/component-tools.d.ts", default: "./dist/component-tools.js" },
   });
+  const installMakefile = read("Makefile");
+  assert.match(installMakefile, /^install: require-dest attest$/m);
+  assert.match(installMakefile, /tar -xzf .*--strip-components=1/);
+  assert.match(installMakefile, /diff -qr/);
+  assert.match(installMakefile, /mv "\$\$candidate" "\$\$destination"/);
   const sidecarPolicy = read("docs/SIDECAR-AUTHORING.md");
   for (const phrase of ["domain Kit", "Contract", "generic Sidecar runtime adapter", "kind tooling"] ) {
     assert.match(sidecarPolicy, new RegExp(phrase, "i"));

@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: guard preflight prepare build verify package require-tooling attest
+.PHONY: guard preflight prepare build verify package require-tooling attest require-dest install
 
 PACKAGE_VERSION := $(shell node -p 'require("./package.json").version')
 PACKAGE_OUT ?= $(CURDIR)/artifacts/$(PACKAGE_VERSION)
@@ -46,3 +46,20 @@ attest: require-tooling package
 		--spec-root "$(CURDIR)/.dependencies/soksak-spec" --tooling-release "$$tooling_root/release.json" \
 		--mode native --platform "$$platform" --architecture "$$architecture" \
 		--tool "node=$$node_version" --tool "pnpm=$$pnpm_version"
+
+require-dest:
+	@case "$(origin DEST)" in "command line") ;; *) echo 'DEST must be an absolute command-line version directory' >&2; exit 64 ;; esac
+	@case "$(DEST)" in /*) ;; *) echo 'DEST must be an absolute directory' >&2; exit 64 ;; esac
+	@test "$$(basename "$(DEST)")" = "$(PACKAGE_VERSION)" || { echo 'DEST basename must equal the SDK version' >&2; exit 64; }
+	@test -d "$$(dirname "$(DEST)")" && test ! -L "$$(dirname "$(DEST)")" || { echo 'DEST parent must be a regular directory' >&2; exit 66; }
+	@test "$(origin SPEC_RELEASE)" = "command line" && test "$(origin SPEC_ARTIFACT)" = "command line" || { echo 'install requires exact SPEC_RELEASE and SPEC_ARTIFACT command-line inputs' >&2; exit 64; }
+
+install: require-dest attest
+	@set -eu; destination="$(DEST)"; parent="$$(dirname "$$destination")"; \
+		set -- "$(PACKAGE_OUT)"/*.tgz; test $$# -eq 1 && test -f "$$1" || { echo 'SDK release must contain exactly one package archive' >&2; exit 65; }; archive="$$1"; \
+		candidate="$$parent/.soksak-sdk-$(PACKAGE_VERSION).install.$$$$"; test ! -e "$$candidate"; \
+		cleanup() { test ! -d "$$candidate" || rm -r "$$candidate"; }; trap cleanup EXIT HUP INT TERM; \
+		mkdir "$$candidate"; tar -xzf "$$archive" --strip-components=1 -C "$$candidate"; \
+		cp "$(PACKAGE_OUT)/release.json" "$$candidate/release.json"; \
+		"$$candidate/bin/soksak-sdk" prepare --manifest "$(SPEC_RELEASE)" --artifact "$(SPEC_ARTIFACT)" >/dev/null; \
+		if test -e "$$destination"; then test -d "$$destination" && test ! -L "$$destination" || { echo 'DEST exists and is not a regular directory' >&2; exit 66; }; diff -qr "$$candidate" "$$destination" >/dev/null || { echo 'SDK_INSTALL_VERSION_CONFLICT' >&2; exit 65; }; echo 'SDK_INSTALL_UNCHANGED version=$(PACKAGE_VERSION)'; else mv "$$candidate" "$$destination"; echo 'SDK_INSTALL_PUBLISHED version=$(PACKAGE_VERSION)'; fi
