@@ -67,7 +67,7 @@ test("CLI packages a clean component through the exact Spec release and reuses i
   writeFileSync(join(source, "dist/index.js"), "export const value = 1;\n");
   json(source, "kit.json", { id: "soksak-kit-example", version: "1.2.3" });
   json(source, "package.json", {
-    name: "@soksak/soksak-kit-example", version: "1.2.3", private: true, type: "module",
+    name: "@soksak/soksak-kit-example", version: "1.2.3", private: false, type: "module",
     repository: { type: "git", url: "git+https://github.com/soksak-ai/soksak-kit-example.git" },
     exports: { ".": "./dist/index.js" },
   });

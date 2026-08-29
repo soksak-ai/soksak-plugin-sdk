@@ -25,7 +25,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   const pkg = json("package.json");
   const kit = json("kit.json");
   assert.deepEqual({ name: pkg.name, version: pkg.version, private: pkg.private }, {
-    name: "@soksak/soksak-sdk", version: kit.version, private: true,
+    name: "@soksak/soksak-sdk", version: kit.version, private: false,
   });
   assert.deepEqual(pkg.engines, { node: "26.7.0" });
   assert.equal(pkg.packageManager, "pnpm@11.22.0");
@@ -70,7 +70,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   }
   assert.match(releaseWorkflow, /run:\s*make verify package\b/);
   assert.match(releaseWorkflow, /[.]dependencies\/soksak-spec\/release-template\/publish-canonical-release[.]mjs/);
-  assert.match(releaseWorkflow, /repositories:\s*soksak-plugin-sdk/);
+  assert.match(releaseWorkflow, /repositories:\s*soksak-sdk/);
   assert.match(makefile, /PACKAGE_OUT\s*[?]=\s*[$][(]CURDIR[)]\/artifacts\/[$][(]PACKAGE_VERSION[)]/);
   for (const required of [
     "guard:", "REGISTRY", "registry_flags", "--@soksak:registry=$(REGISTRY)",
