@@ -94,5 +94,6 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
     assert.ok(makefile.includes(required), `SDK tooling version check is missing ${required}`);
   }
   assert.doesNotMatch(makefile, /TOOLING_ROOT|TOOLING_RELEASE|SDK_ROOT|SDK_RELEASE/);
-  assert.match(releaseWorkflow, /artifacts\/[$][(]node -p .*version.*[)]\/release[.]json/);
+  assert.match(releaseWorkflow, /--artifacts "[$]GITHUB_WORKSPACE\/artifacts\/[$]version"/);
+  assert.match(releaseWorkflow, /--manifest "[$]GITHUB_WORKSPACE\/artifacts\/[$]version\/release[.]json"/);
 });

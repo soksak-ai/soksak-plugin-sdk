@@ -45,9 +45,10 @@ jobs:
       - name: Publish the verified owner manifest and assets
         env:
           SOKSAK_RELEASE_TOKEN: ${{ steps.release-token.outputs.token }}
-        run: >-
-          node .dependencies/soksak-spec/release-template/publish-canonical-release.mjs
-          --repository "$GITHUB_REPOSITORY"
-          --commit "$GITHUB_SHA"
-          --artifacts "$GITHUB_WORKSPACE/artifacts/$(node -p 'require(\"./package.json\").version')"
-          --manifest "$GITHUB_WORKSPACE/artifacts/$(node -p 'require(\"./package.json\").version')/release.json"
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          node .dependencies/soksak-spec/release-template/publish-canonical-release.mjs \
+            --repository "$GITHUB_REPOSITORY" \
+            --commit "$GITHUB_SHA" \
+            --artifacts "$GITHUB_WORKSPACE/artifacts/$version" \
+            --manifest "$GITHUB_WORKSPACE/artifacts/$version/release.json"
