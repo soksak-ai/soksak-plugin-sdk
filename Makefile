@@ -27,6 +27,7 @@ verify: prepare
 	@CI=1 PNPM_DISABLE_SELF_UPDATE_CHECK=1 pnpm $(registry_flags) test
 
 package: verify
+	@mkdir -p "$(dir $(PACKAGE_OUT))"
 	@node bin/soksak-sdk package --root "$(CURDIR)" --spec-root "$(CURDIR)/.dependencies/soksak-spec" --commit "$$(git rev-parse --verify HEAD)" --out "$(PACKAGE_OUT)"
 
 require-tooling:
