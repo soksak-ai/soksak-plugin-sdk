@@ -31,20 +31,19 @@ package: verify
 	@node bin/soksak-sdk package --root "$(CURDIR)" --spec-root "$(CURDIR)/.dependencies/soksak-spec" --commit "$$(git rev-parse --verify HEAD)" --out "$(PACKAGE_OUT)"
 
 require-tooling:
-	@tool="$$(command -v soksak-sdk)" || { echo 'soksak-sdk is not selected by PATH' >&2; exit 78; }; \
-		case "$$tool" in /*) ;; *) echo 'soksak-sdk PATH entry must be absolute' >&2; exit 78 ;; esac; \
-		root="$$(cd "$$(dirname "$$tool")/.." && pwd -P)"; \
-		test -f "$$tool" && test ! -L "$$tool" && test -f "$$root/release.json" && test ! -L "$$root/release.json" || { echo 'soksak-sdk PATH entry has no regular release.json' >&2; exit 78; }; \
+	@case "$(origin SDK_ROOT):$(origin SDK_RELEASE)" in "command line:command line") ;; *) echo 'SDK_ROOT and SDK_RELEASE must be exact command-line inputs' >&2; exit 64 ;; esac; \
+		case "$(SDK_ROOT):$(SDK_RELEASE)" in /*:/*) ;; *) echo 'SDK_ROOT and SDK_RELEASE must be absolute paths' >&2; exit 64 ;; esac; \
+		root="$(SDK_ROOT)"; tool="$$root/bin/soksak-sdk"; \
+		test -d "$$root" && test ! -L "$$root" && test -f "$$tool" && test ! -L "$$tool" && test -f "$(SDK_RELEASE)" && test ! -L "$(SDK_RELEASE)" || { echo 'SDK self-tooling inputs must be regular release files' >&2; exit 78; }; \
 		tooling_package_version="$$(node -e 'process.stdout.write(require(process.argv[1]).version)' "$$root/package.json")"; \
-		tooling_release_version="$$(node -e 'process.stdout.write(require(process.argv[1]).version)' "$$root/release.json")"; \
+		tooling_release_version="$$(node -e 'process.stdout.write(require(process.argv[1]).version)' "$(SDK_RELEASE)")"; \
 		test "$$tooling_package_version" = "$(TOOLING_SDK_VERSION)" && test "$$tooling_release_version" = "$(TOOLING_SDK_VERSION)" || { echo "TOOLCHAIN_MISMATCH soksak-sdk required=$(TOOLING_SDK_VERSION) package=$$tooling_package_version release=$$tooling_release_version" >&2; exit 78; }
 
 attest: require-tooling package
-	@tool="$$(command -v soksak-sdk)"; tooling_root="$$(cd "$$(dirname "$$tool")/.." && pwd -P)"; \
-		platform="$$(node -p 'process.platform')"; architecture="$$(node -p 'process.arch')"; \
+	@platform="$$(node -p 'process.platform')"; architecture="$$(node -p 'process.arch')"; \
 		node_version="$$(node -p 'process.versions.node')"; pnpm_version="$$(pnpm --version)"; \
-		soksak-sdk attest --release-dir "$(PACKAGE_OUT)" \
-		--spec-root "$(CURDIR)/.dependencies/soksak-spec" --tooling-release "$$tooling_root/release.json" \
+		"$(SDK_ROOT)/bin/soksak-sdk" attest --release-dir "$(PACKAGE_OUT)" \
+		--spec-root "$(CURDIR)/.dependencies/soksak-spec" --tooling-release "$(SDK_RELEASE)" \
 		--mode native --platform "$$platform" --architecture "$$architecture" \
 		--tool "node=$$node_version" --tool "pnpm=$$pnpm_version"
 
