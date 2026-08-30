@@ -74,6 +74,8 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
     }
   }
   assert.match(releaseWorkflow, /run:\s*make verify package\b/);
+  assert.equal(releaseWorkflow.includes('require(\\"'), false);
+  assert.match(releaseWorkflow, /version="[$][(]node -p 'require\("[.]\/package[.]json"\)[.]version'\)"/);
   assert.match(releaseWorkflow, /[.]dependencies\/soksak-spec\/release-template\/publish-canonical-release[.]mjs/);
   assert.match(releaseWorkflow, /repositories:\s*soksak-sdk/);
   assert.match(makefile, /PACKAGE_OUT\s*[?]=\s*[$][(]CURDIR[)]\/artifacts\/[$][(]PACKAGE_VERSION[)]/);
