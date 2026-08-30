@@ -67,13 +67,19 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   for (const workflow of [verifyWorkflow, releaseWorkflow]) {
     assert.match(workflow, /node-version-file:\s*[.]node-version/);
     assert.match(workflow, /package_json_file:\s*package[.]json/);
-    assert.match(workflow, /run:\s*make verify(?: package)? REGISTRY=https:\/\/registry[.]npmjs[.]org\//);
+    if (workflow === verifyWorkflow) {
+      assert.match(workflow, /run:\s*make verify REGISTRY=https:\/\/registry[.]npmjs[.]org\//);
+    }
     assert.doesNotMatch(workflow, /[.]nvmrc|pnpm install|pnpm test|@soksak-ai/);
     for (const action of [...workflow.matchAll(/^\s*-?\s*uses:\s*([^\s#]+)/gm)].map((match) => match[1])) {
       assert.match(action, /^[^@\s]+@[a-f0-9]{40}$/);
     }
   }
-  assert.match(releaseWorkflow, /run:\s*make verify package\b/);
+  for (const input of ["sdk_archive_url", "sdk_archive_sha256", "sdk_release_url", "sdk_release_sha256"]) {
+    assert.match(releaseWorkflow, new RegExp(`^      ${input}:$`, "m"));
+  }
+  assert.match(releaseWorkflow, /make attest SDK_ROOT="[$]RUNNER_TEMP\/soksak-sdk" SDK_RELEASE="[$]RUNNER_TEMP\/soksak-sdk-release[.]json" REGISTRY=https:\/\/registry[.]npmjs[.]org\//);
+  assert.doesNotMatch(releaseWorkflow, /make verify package/);
   assert.equal(releaseWorkflow.includes('require(\\"'), false);
   assert.match(releaseWorkflow, /version="[$][(]node -p 'require\("[.]\/package[.]json"\)[.]version'\)"/);
   assert.match(releaseWorkflow, /[.]dependencies\/soksak-spec\/release-template\/publish-canonical-release[.]mjs/);
@@ -86,14 +92,14 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
   ]) {
     assert.ok(makefile.includes(required), `Makefile is missing ${required}`);
   }
-  for (const required of ["require-tooling:", "attest:", "command -v soksak-sdk", "release.json"]) {
+  for (const required of ["require-tooling:", "attest:", "SDK_ROOT", "SDK_RELEASE", "release.json"]) {
     assert.ok(makefile.includes(required), `SDK attestation boundary is missing ${required}`);
   }
   assert.match(makefile, /^TOOLING_SDK_VERSION := \d+\.\d+\.\d+$/m);
   for (const required of ["tooling_package_version", "tooling_release_version", "TOOLING_SDK_VERSION"]) {
     assert.ok(makefile.includes(required), `SDK tooling version check is missing ${required}`);
   }
-  assert.doesNotMatch(makefile, /TOOLING_ROOT|TOOLING_RELEASE|SDK_ROOT|SDK_RELEASE/);
+  assert.doesNotMatch(makefile, /command -v soksak-sdk/);
   assert.match(releaseWorkflow, /--artifacts "[$]GITHUB_WORKSPACE\/artifacts\/[$]version"/);
   assert.match(releaseWorkflow, /--manifest "[$]GITHUB_WORKSPACE\/artifacts\/[$]version\/release[.]json"/);
 });
