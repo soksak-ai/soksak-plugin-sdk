@@ -45,6 +45,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
     assert.match(sidecarPolicy, new RegExp(phrase, "i"));
   }
   assert.match(read("bin/soksak-sdk"), /command === "prepare"/);
+  assert.match(read("bin/soksak-sdk"), /command === "validate"/);
   assert.deepEqual(pkg.bin, { "soksak-sdk": "bin/soksak-sdk" });
   assert.equal(existsSync(join(root, "bin/soksak-sdk.mjs")), false);
   assert.equal(pkg.soksakRelease, undefined);

@@ -3,6 +3,7 @@
 import { spawnSync } from "node:child_process";
 import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { isAbsolute } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   createComponentBuildReceipt,
   inspectComponentRoot,
@@ -16,7 +17,7 @@ import {
 import { attestComponentRelease } from "../dist/component-attestation.js";
 import { prepareSpec } from "../scripts/prepare-spec.mjs";
 
-const usage = "soksak-sdk <prepare|inspect|verify|receipt|attest|scaffold|pack-target|package> [named options]";
+const usage = "soksak-sdk <prepare|validate|inspect|verify|receipt|attest|scaffold|pack-target|package> [options]";
 const sdkPackage = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const sdkVersion = sdkPackage.version;
 const specVersion = sdkPackage.peerDependencies?.["@soksak/soksak-spec"];
@@ -78,6 +79,18 @@ async function prepare(args) {
     ]);
     process.stdout.write(`${JSON.stringify(prepared)}\n`);
   } catch (error) { fail("SDK_PREPARE_FAILED", error instanceof Error ? error.message : String(error)); }
+}
+
+function validate(args) {
+  const validator = fileURLToPath(
+    new URL("../.dependencies/soksak-spec/bin/validate.mjs", import.meta.url),
+  );
+  regular(validator, "prepared Spec validator");
+  const result = spawnSync(process.execPath, [validator, ...args], { encoding: "utf8" });
+  if (result.error) fail("SDK_VALIDATOR_FAILED", result.error.message);
+  process.stdout.write(result.stdout);
+  process.stderr.write(result.stderr);
+  if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
 function receipt(args) {
@@ -176,6 +189,7 @@ function packTarget(args) {
 const [command, ...args] = process.argv.slice(2);
 if (command === "--help" || command === "help") { process.stdout.write(`${usage}\n`); process.exit(0); }
 if (command === "prepare") await prepare(args);
+else if (command === "validate") validate(args);
 else if (command === "inspect") inspect(args);
 else if (command === "receipt") receipt(args);
 else if (command === "verify") verify(args);

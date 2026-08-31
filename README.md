@@ -5,7 +5,7 @@ Plugin, Sidecar, Kit, Contract, and Spec component kinds.
 
 - `@soksak/soksak-sdk/plugin` is the isolated Plugin author API.
 - `@soksak/soksak-sdk/component-tools` exposes the common five-kind types.
-- The `soksak-sdk` CLI exposes prepare, inspect, verify, receipt, attest, scaffold, pack-target, and package commands.
+- The `soksak-sdk` CLI exposes prepare, validate, inspect, verify, receipt, attest, scaffold, pack-target, and package commands.
 - [Sidecar authoring ownership](docs/SIDECAR-AUTHORING.md) keeps runtime APIs in Contracts and domain Kits.
 
 soksak-spec owns rules and wire formats. The SDK is an implementation consuming one exact Spec
@@ -13,6 +13,8 @@ release, not release identity. Component publication verifies manifests, artifac
 and the `soksak-component-build-receipt-v1` receipt rather than trusting an SDK dependency name.
 An extracted SDK release runs `soksak-sdk prepare` to materialize the exact Spec release pinned by
 `sdk-spec.lock.json`; explicit `--manifest` and `--artifact` inputs use the same validation path.
+`soksak-sdk validate` invokes that prepared Spec validator by its verified install path and never
+resolves an ambient `soksak-validate` executable.
 For a Sidecar, `pack-target` uses the same Spec target packer as the Actions build job. `package`
 without `--target` requires the publication matrix; `package --target <declared-target>` uses the
 same canonical builder and validator for one local development target.

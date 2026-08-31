@@ -3,7 +3,7 @@ SHELL := /bin/sh
 
 PACKAGE_VERSION := $(shell node -p 'require("./package.json").version')
 PACKAGE_OUT ?= $(CURDIR)/artifacts/$(PACKAGE_VERSION)
-TOOLING_SDK_VERSION := 0.0.18
+TOOLING_SDK_VERSION := 0.0.19
 registry_flags = --@soksak:registry=$(REGISTRY) --config.minimum-release-age=0
 spec_input_args = $(if $(filter command line,$(origin SPEC_RELEASE)),--manifest "$(SPEC_RELEASE)" --artifact "$(SPEC_ARTIFACT)")
 
