@@ -12,7 +12,8 @@ import {
 import { materializedSpecScript } from "./materialized-spec.js";
 
 type SidecarInterface = { id: string; version: string };
-type SidecarManifest = { id: string; version: string; interface: SidecarInterface[]; process: string };
+type RuntimeDependency = { id: string; version: string };
+type SidecarManifest = { id: string; version: string; interface: SidecarInterface[]; process: string; runtimeDependencies?: { plugins?: RuntimeDependency[]; sidecars?: RuntimeDependency[] } };
 
 function manifest(path: string): SidecarManifest {
   const value = JSON.parse(readFileSync(assertRegularFile(path, "Sidecar manifest"), "utf8"));
@@ -47,7 +48,7 @@ export function packSidecarTarget(input: { root: string; specRoot: string; targe
 }
 
 export function packageSidecarRelease(input: {
-  root: string; specRoot: string; commit: string; artifacts: string; target?: string; out: string;
+  root: string; specRoot: string; commit: string; artifacts: string; target?: string; store?: string; out: string;
 }): ComponentPackageResult {
   const root = assertRegularDirectory(input.root, "Sidecar root");
   const artifacts = assertRegularDirectory(input.artifacts, "Sidecar target artifacts");
@@ -63,6 +64,7 @@ export function packageSidecarRelease(input: {
       builder, "--commit", input.commit, "--tag", `v${identity.version}`,
       "--artifacts", artifacts, "--out", stage,
       ...(input.target ? ["--target", input.target] : []),
+      ...(input.store ? ["--store", input.store] : []),
     ];
     runPackagingCommand(process.execPath, buildArgs, root);
     runPackagingCommand(process.execPath, [validator, "--spec-package", input.specRoot, "--release-dir", stage], root);

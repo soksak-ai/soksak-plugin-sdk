@@ -1,6 +1,6 @@
 {
   "name": "@soksak/soksak-sdk",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "private": false,
   "repository": {
     "type": "git",
@@ -36,7 +36,7 @@
     "soksak-sdk": "bin/soksak-sdk"
   },
   "peerDependencies": {
-    "@soksak/soksak-spec": "0.0.52"
+    "@soksak/soksak-spec": "0.0.53"
   },
   "scripts": {
     "dependencies:prepare": "node scripts/prepare-spec.mjs",

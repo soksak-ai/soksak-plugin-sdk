@@ -160,9 +160,8 @@ function packageRelease(args) {
     const common = { root: values.get("--root"), specRoot: values.get("--spec-root"), commit: values.get("--commit"), out: values.get("--out") };
     if (inspected.kind === "sidecar") {
       required(values, ["--artifacts"]);
-      if (values.has("--store")) fail("SDK_USAGE", "--store is only valid for a Plugin", 2);
       process.stdout.write(`${JSON.stringify(packageSidecarRelease({
-        ...common, artifacts: values.get("--artifacts"), target: values.get("--target"),
+        ...common, artifacts: values.get("--artifacts"), target: values.get("--target"), store: values.get("--store"),
       }))}\n`);
     } else if (inspected.kind === "plugin") {
       if (values.has("--artifacts") || values.has("--target")) fail("SDK_USAGE", "--artifacts and --target are only valid for a Sidecar", 2);

@@ -48,6 +48,7 @@ export function packageSidecarRelease(input) {
             builder, "--commit", input.commit, "--tag", `v${identity.version}`,
             "--artifacts", artifacts, "--out", stage,
             ...(input.target ? ["--target", input.target] : []),
+            ...(input.store ? ["--store", input.store] : []),
         ];
         runPackagingCommand(process.execPath, buildArgs, root);
         runPackagingCommand(process.execPath, [validator, "--spec-package", input.specRoot, "--release-dir", stage], root);
