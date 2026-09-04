@@ -28,7 +28,7 @@ test("the SDK is one Kit with isolated Plugin and Component Tooling entrypoints"
     name: "@soksak/soksak-sdk", version: kit.version, private: false,
   });
   assert.deepEqual(pkg.engines, { node: "26.7.0" });
-  assert.equal(pkg.packageManager, "pnpm@11.22.0");
+  assert.equal(pkg.packageManager, "pnpm@11.24.0");
   assert.deepEqual(pkg.devEngines, { runtime: { name: "node", version: "26.7.0", onFail: "error" } });
   assert.deepEqual(pkg.exports, {
     ".": { types: "./dist/component-tools.d.ts", default: "./dist/component-tools.js" },
